@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  news-writer:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./.cache:/app/.cache
+      - ./secrets:/app/secrets:ro
+    command: ["python", "-m", "app.main", "--mode", "scheduler"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-m", "app.healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
