@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -28,15 +29,21 @@ class DummyCollector:
 
 @dataclass
 class DummyScorer:
-    ranked: list[RankedNews]
+    def __init__(self, score: int) -> None:
+        self.score = score
 
     def evaluate_many(self, items):  # noqa: ANN001
-        return self.ranked
+        return [RankedNews(news=item, score=self.score) for item in items]
 
 
 class DummyComposer:
     def generate(self, item: NewsItem) -> GeneratedPost:
-        return GeneratedPost(title=item.title, body="A" * 1500, hashtags=("AI", "Tech", "News"))
+        return GeneratedPost(
+            title=f"RU {item.title}",
+            body="A" * 1500,
+            summary="Краткое описание",
+            hashtags=("AI", "Tech", "News"),
+        )
 
 
 class DummyImageSelector:
@@ -72,12 +79,12 @@ def test_pipeline_runner_success(config: AppConfig) -> None:
         title="AI breakthrough",
         link="https://example.com/1",
         summary="Summary",
-        published=None,
+        published=datetime.now(timezone.utc),
         keywords=("AI",),
         media_url=None,
     )
     collector = DummyCollector([news])
-    scorer = DummyScorer([RankedNews(news=news, score=8)])
+    scorer = DummyScorer(10)
     sheets = DummySheetsWriter()
     runner = PipelineRunner(
         config,
@@ -103,12 +110,12 @@ def test_pipeline_runner_handles_failures(config: AppConfig) -> None:
         title="AI breakthrough",
         link="https://example.com/1",
         summary="Summary",
-        published=None,
+        published=datetime.now(timezone.utc),
         keywords=("AI",),
         media_url=None,
     )
     collector = DummyCollector([news])
-    scorer = DummyScorer([RankedNews(news=news, score=6)])
+    scorer = DummyScorer(6)
     sheets = DummySheetsWriter()
     runner = PipelineRunner(
         config,

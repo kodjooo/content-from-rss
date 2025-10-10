@@ -27,7 +27,12 @@ def news_item() -> NewsItem:
 
 @pytest.fixture()
 def generated_post() -> GeneratedPost:
-    return GeneratedPost(title="Generated", body="A" * 1500, hashtags=("AI", "Automation", "Innovation"))
+    return GeneratedPost(
+        title="Generated",
+        body="A" * 1500,
+        summary="Краткое описание",
+        hashtags=("AI", "Automation", "Innovation"),
+    )
 
 
 @pytest.fixture()

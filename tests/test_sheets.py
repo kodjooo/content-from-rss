@@ -17,6 +17,19 @@ class DummyWorksheet:
     def append_row(self, row: list[str], value_input_option: str = "RAW") -> None:  # noqa: ARG002
         self.rows.append(row)
 
+    def row_values(self, index: int) -> list[str]:
+        if 1 <= index <= len(self.rows):
+            return self.rows[index - 1]
+        return []
+
+    def update(self, range_name: str, values: list[list[str]]) -> None:  # noqa: ARG002
+        if not values:
+            return
+        if self.rows:
+            self.rows[0] = values[0]
+        else:
+            self.rows.append(values[0])
+
 
 class DummySpreadsheet:
     def __init__(self) -> None:
@@ -46,14 +59,16 @@ def publication_record() -> PublicationRecord:
         source="Test Source",
         title="AI News",
         link="https://example.com/news",
-        summary="Summary text",
+        summary="Краткое описание",
         post=GeneratedPost(
             title="Post title",
+            summary="Краткое описание",
             body="Body" * 400,
             hashtags=("AI", "Automation", "Innovation"),
         ),
         image=ImageAsset(url="https://images.example.com/img.jpg", source="rss"),
         score=9,
+        image_source="RSS",
     )
 
 
@@ -69,8 +84,11 @@ def test_append_records_writes_rows(tmp_path, publication_record: PublicationRec
     writer.append_records([publication_record])
 
     assert client.open_calls == 1
-    assert len(client.spreadsheet.sheet1.rows) == 1
-    row = client.spreadsheet.sheet1.rows[0]
-    assert row[0].startswith("2024-01-01")
-    assert row[5].startswith("Body")
-    assert row[9].startswith("#")
+    assert len(client.spreadsheet.sheet1.rows) == 2
+    header = client.spreadsheet.sheet1.rows[0]
+    data_row = client.spreadsheet.sheet1.rows[1]
+    assert header[0] == "Date"
+    assert data_row[0].startswith("2024-01-01")
+    assert data_row[5].startswith("Body")
+    assert data_row[7] == publication_record.image_source
+    assert data_row[10].startswith("#")

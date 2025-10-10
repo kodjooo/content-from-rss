@@ -47,6 +47,7 @@ class GeneratedPost:
 
     title: str
     body: str
+    summary: str
     hashtags: tuple[str, ...]
 
     def formatted(self) -> str:
@@ -68,7 +69,7 @@ class ImageAsset:
 class PublicationRecord:
     """Запись для сохранения в Google Sheets."""
 
-    date: datetime
+    date: datetime | str
     source: str
     title: str
     link: str
@@ -76,20 +77,23 @@ class PublicationRecord:
     post: GeneratedPost
     image: ImageAsset
     score: int
+    image_source: str
     status: str = "Written"
     notes: str | None = None
 
     def as_row(self) -> list[str]:
         """Преобразует запись в строку для Google Sheets."""
         hashtags_line = " ".join(f"#{tag}" for tag in self.post.hashtags)
+        date_value = self.date.isoformat() if isinstance(self.date, datetime) else str(self.date)
         return [
-            self.date.isoformat(),
+            date_value,
             self.source,
             self.title,
             self.link,
             self.summary,
             self.post.formatted(),
             self.image.url,
+            self.image_source,
             str(self.score),
             self.status,
             self.notes or hashtags_line,

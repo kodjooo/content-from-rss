@@ -32,7 +32,12 @@ class PostComposer:
         payload = self._parse_payload(raw_text)
         self._validate_payload(payload)
         hashtags = tuple(payload["hashtags"])
-        return GeneratedPost(title=payload["title"], body=payload["body"], hashtags=hashtags)
+        return GeneratedPost(
+            title=payload["title"],
+            body=payload["body"],
+            summary=payload["summary"],
+            hashtags=hashtags,
+        )
 
     @retry(
         reraise=True,
@@ -58,14 +63,38 @@ class PostComposer:
         keywords = ", ".join(item.keywords) or "AI"
         return (
             "Ты — Марк Аборчи, AI-специалист и IT-автоматизатор с прошлым опытом проектного менеджмента.\n"
-            "Сгенерируй пост длиной 1500-3000 символов на основе новости.\n"
-            "Используй выделенные ключевые факты, добавь контекст и вывод. Нужно сделать акцент на том, как это повлияет на будущее развития IT и AI.\n"
-            "Стиль: профессиональный, но не сухой. Должно быть полезно AI-специалистам, IT-специалистам и предпринимателям. Избегай «воды», используй реальные кейсы и понятные примеры.\n"
-            "Подготовь 3-4 хэштега без символа # (мы добавим его сами).\n"
-            "Ответ предоставь в формате JSON с ключами title, body, hashtags.\n"
-            "Пример: {\"title\": \"...\", \"body\": \"...\", \"hashtags\": [\"AI\", \"Automation\"]}.\n\n"
-            f"Заголовок: {item.title}\n"
-            f"Описание: {item.summary}\n"
+            "Пиши на русском языке.\n"
+            "Сгенерируй полноценный пост длиной 1500–3000 символов на основе новости.\n"
+            "Это не пересказ, а аналитический и вовлекающий пост для соцсетей.\n\n"
+
+            "Задача — выделить главные факты, объяснить, почему это важно именно сейчас, и показать, как это повлияет на будущее IT, бизнеса и автоматизации.\n"
+            "Сфокусируйся на практических выводах: как это можно использовать, какие возможности или риски открываются, какие профессии или процессы могут измениться.\n"
+            "Добавь личную позицию от первого лица — что ты об этом думаешь, согласен ли с подходом, какие последствия видишь.\n"
+            "Если новость вызывает противоречия или может разделить мнения, подчеркни этот аспект и закончи открытым вопросом для обсуждения.\n\n"
+
+            "Стиль: уверенный, живой, профессиональный. Без клише, без общих фраз, без лишней воды.\n"
+            "Пиши как эксперт, который делится личным опытом и размышлениями с коллегами и предпринимателями.\n"
+            "Используй конкретные примеры, короткие абзацы и естественную структуру.\n\n"
+
+            "Аудитория: владельцы бизнеса, IT- и AI-специалисты, автоматизаторы и менеджеры, которым важно понимать реальные тенденции, а не маркетинг.\n\n"
+
+            "Формат ответа — строго JSON:\n"
+            "title — короткий, цепляющий заголовок (до 100 символов).\n"
+            "summary — краткое изложение сути новости (300–400 символов).\n"
+            "body — сам текст поста длиной 1500–3000 символов.\n"
+            "hashtags — список из 3–4 ключевых слов без символа #.\n\n"
+
+            "Пример:\n"
+            "{"
+            "\"title\": \"ИИ перестал быть инструментом — он стал бизнес-партнёром\", "
+            "\"summary\": \"OpenAI представил новую модель, способную не только генерировать код, но и самостоятельно выполнять задачи. "
+            "Это открывает путь к автономным агентам в бизнесе.\", "
+            "\"body\": \"<Текст поста длиной 1500–3000 символов>.\", "
+            "\"hashtags\": [\"AI\", \"Automation\", \"Business\", \"Productivity\"]"
+            "}\n\n"
+
+            f"Заголовок новости: {item.title}\n"
+            f"Описание новости: {item.summary}\n"
             f"Ключевые слова: {keywords}"
         )
 
@@ -79,16 +108,19 @@ class PostComposer:
 
     def _validate_payload(self, payload: dict[str, object]) -> None:
         """Проверяет структуру и ограничения результата."""
-        for field in ("title", "body", "hashtags"):
+        for field in ("title", "summary", "body", "hashtags"):
             if field not in payload:
                 raise PostGenerationError(f"Отсутствует поле {field}")
         body = payload["body"]
+        summary = payload["summary"]
         hashtags = payload["hashtags"]
         if not isinstance(body, str):
             raise PostGenerationError("Поле body должно быть строкой")
         length = len(body)
         if length < 1500 or length > 3000:
             raise PostGenerationError(f"Длина текста вне требуемого диапазона: {length}")
+        if not isinstance(summary, str) or not summary.strip():
+            raise PostGenerationError("Поле summary должно быть непустой строкой")
         if not isinstance(hashtags, Iterable):
             raise PostGenerationError("Поле hashtags должно быть массивом")
         hashtags_list = [tag for tag in hashtags if isinstance(tag, str) and tag.strip()]

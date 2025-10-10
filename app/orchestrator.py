@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Iterable, Sequence
 
 import pytz
@@ -59,14 +59,19 @@ class PipelineRunner:
         """Запускает полный цикл обработки."""
         stats = PipelineStats()
         news_items = self._rss.collect()
-        stats.processed = len(news_items)
+        recent_items = self._filter_recent(news_items)
+        stats.processed = len(recent_items)
 
-        ranked = self._scorer.evaluate_many(news_items)
-        accepted = [item for item in ranked if item.score >= 7]
+        if not recent_items:
+            logger.info("Нет новостей за последние 12 часов")
+            return stats
+
+        ranked = self._scorer.evaluate_many(recent_items)
+        accepted = self._select_top_ranked(ranked)
         stats.accepted = len(accepted)
 
         if not accepted:
-            logger.info("Нет релевантных новостей для публикации")
+            logger.info("Нет релевантных новостей с оценкой >= 8")
             return stats
 
         records: list[PublicationRecord] = []
@@ -102,16 +107,63 @@ class PipelineRunner:
     ) -> PublicationRecord:
         """Формирует объект для сохранения."""
         now = datetime.now(self._timezone)
+        date_str = now.strftime("%Y-%m-%d %H:%M:%S")
         return PublicationRecord(
-            date=now,
+            date=date_str,
             source=news.source,
-            title=news.title,
+            title=post.title,
             link=news.link,
-            summary=news.summary,
+            summary=post.summary,
             post=post,
             image=image,
             score=score,
+            image_source=self._image_source_label(image.source),
         )
+
+    def _filter_recent(self, items: Iterable[NewsItem]) -> list[NewsItem]:
+        """Фильтрует новости по давности публикации (12 часов)."""
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+        recent: list[NewsItem] = []
+        for item in items:
+            published = item.published
+            if published is None:
+                continue
+            if published.tzinfo is None:
+                published = published.replace(tzinfo=timezone.utc)
+            else:
+                published = published.astimezone(timezone.utc)
+            if published >= cutoff:
+                recent.append(item)
+        return recent
+
+    def _image_source_label(self, source: str) -> str:
+        """Читабельное название источника изображения."""
+        mapping = {
+            "rss": "RSS",
+            "pexels": "Библиотека",
+            "openai": "Генерация",
+        }
+        return mapping.get(source.lower(), source)
+
+    def _select_top_ranked(self, ranked: Iterable[RankedNews]) -> list[RankedNews]:
+        """Выбирает минимум три новости, постепенно снижая порог с 10 до 8."""
+        ranked_by_score: dict[int, list[RankedNews]] = {10: [], 9: [], 8: []}
+        for item in ranked:
+            if item.score >= 10:
+                ranked_by_score[10].append(item)
+            elif item.score == 9:
+                ranked_by_score[9].append(item)
+            elif item.score == 8:
+                ranked_by_score[8].append(item)
+
+        result: list[RankedNews] = []
+        for score in (10, 9, 8):
+            pool = ranked_by_score[score]
+            while pool and len(result) < 5:
+                result.append(pool.pop(0))
+            if len(result) >= 3:
+                break
+        return result[:5]
 
 
 def main() -> PipelineStats:

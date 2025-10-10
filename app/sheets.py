@@ -13,6 +13,20 @@ from .models import PublicationRecord
 
 logger = logging.getLogger(__name__)
 
+SHEET_HEADERS = [
+    "Date",
+    "Source",
+    "Title",
+    "Link",
+    "Summary",
+    "GPT Post",
+    "Image URL",
+    "Image Source",
+    "Score",
+    "Status",
+    "Notes",
+]
+
 
 class GoogleSheetsWriter:
     """Обертка над gspread для записи строк."""
@@ -30,6 +44,8 @@ class GoogleSheetsWriter:
             logger.exception("Не удалось открыть Google Sheet: %s", exc)
             raise
 
+        self._ensure_header(worksheet)
+
         for record in records:
             row = self._serialize(record)
             try:
@@ -43,14 +59,16 @@ class GoogleSheetsWriter:
         """Формирует строку согласно структуре таблицы."""
         post_text = record.post.formatted()
         hashtags_line = " ".join(f"#{tag}" for tag in record.post.hashtags)
+        date_value = record.date if isinstance(record.date, str) else record.date.isoformat()
         return [
-            record.date.isoformat(),
+            date_value,
             record.source,
             record.title,
             record.link,
             record.summary,
             post_text,
             record.image.url,
+            record.image_source,
             str(record.score),
             record.status,
             record.notes or hashtags_line,
@@ -63,6 +81,19 @@ class GoogleSheetsWriter:
         except Exception:
             logger.warning("Лист %s не найден, используется первый лист", self._config.worksheet)
             return spreadsheet.sheet1
+
+    def _ensure_header(self, worksheet: gspread.Worksheet) -> None:
+        """Убеждается, что заголовок таблицы присутствует."""
+        try:
+            first_row = worksheet.row_values(1)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Не удалось прочитать заголовок: %s", exc)
+            first_row = []
+        normalized = [cell.strip() for cell in first_row]
+        if not normalized:
+            worksheet.append_row(SHEET_HEADERS, value_input_option="RAW")
+        elif normalized != SHEET_HEADERS:
+            worksheet.update("1:1", [SHEET_HEADERS])
 
 
 __all__: Sequence[str] = ("GoogleSheetsWriter",)

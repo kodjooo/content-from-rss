@@ -49,7 +49,7 @@ class ImageSelector:
         """Основной метод подбора."""
         candidate = (
             self._from_rss(news)
-            or self._from_pexels(news)
+            or self._from_pexels(news, post)
             or self._generate_image(news, post)
         )
         if not candidate:
@@ -71,9 +71,10 @@ class ImageSelector:
             logger.warning("Не удалось загрузить изображение из RSS %s: %s", news.media_url, exc)
             return None
 
-    def _from_pexels(self, news: NewsItem) -> _ImageCandidate | None:
+    def _from_pexels(self, news: NewsItem, post: GeneratedPost) -> _ImageCandidate | None:
         """Поиск изображения в Pexels."""
-        query = news.title or "artificial intelligence"
+        hashtags = [tag.replace("#", "").strip() for tag in post.hashtags if tag.strip()]
+        query = " ".join(hashtags) if hashtags else (news.title or "artificial intelligence")
         headers = {"Authorization": self._pexels.api_key}
         params = {"query": query, "per_page": 1}
         try:

@@ -43,7 +43,7 @@ def news_item() -> NewsItem:
 
 def make_payload(body_length: int, hashtags: list[str]) -> str:
     body = "A" * body_length
-    data = {"title": "Generated", "body": body, "hashtags": hashtags}
+    data = {"title": "Generated", "summary": "Краткое описание новости.", "body": body, "hashtags": hashtags}
     return json.dumps(data)
 
 
@@ -57,6 +57,7 @@ def test_generate_returns_valid_post(news_item: NewsItem) -> None:
     post = composer.generate(news_item)
 
     assert post.title == "Generated"
+    assert post.summary.startswith("Краткое")
     assert len(post.body) == 1500
     assert post.hashtags == ("AI", "Automation", "Innovation")
 
