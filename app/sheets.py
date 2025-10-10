@@ -60,9 +60,9 @@ class GoogleSheetsWriter:
         """Формирует строку согласно структуре таблицы."""
         base_body = record.post.formatted().strip()
         full_body = f"{record.post.title}\n\n{base_body}".strip()
-        full_body = f"{full_body}\n\nИсточник: {record.link}".strip()
-        short_text = f"{record.post.title}\n\n{record.post.short_body}".strip()
-        short_text = f"{short_text}\n\nИсточник: {record.link}".strip()
+        full_body = f"{full_body}\n\nИсточник: [{record.post.title}]({record.link})".strip()
+        short_text = f"#главная_новость\n\n{record.post.short_body}".strip()
+        short_text = f"{short_text}\n\nИсточник: [{record.post.title}]({record.link})".strip()
         hashtags_line = " ".join(f"#{tag}" for tag in record.post.hashtags)
         date_value = record.date if isinstance(record.date, str) else record.date.isoformat()
         return [

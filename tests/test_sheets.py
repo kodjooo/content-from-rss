@@ -90,7 +90,7 @@ def test_append_records_writes_rows(tmp_path, publication_record: PublicationRec
     data_row = client.spreadsheet.sheet1.rows[1]
     assert header[0] == "Date"
     assert data_row[0].startswith("2024-01-01")
-    assert data_row[5].startswith("Post title")
-    assert "Источник" in data_row[6]
+    assert data_row[5].startswith("#главная_новость")
+    assert "[Post title]" in data_row[6]
     assert data_row[8] == publication_record.image_source
     assert data_row[11].startswith("#")

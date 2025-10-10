@@ -70,7 +70,7 @@ def test_generate_returns_valid_post(news_item: NewsItem) -> None:
 
 
 def test_generate_raises_on_short_text(news_item: NewsItem) -> None:
-    payload = make_payload(1200, ["AI", "Automation", "Innovation"])
+    payload = make_payload(900, ["AI", "Automation", "Innovation"])
     composer = PostComposer(
         OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
         client=DummyClient(payload),
