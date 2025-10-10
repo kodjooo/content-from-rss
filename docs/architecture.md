@@ -6,9 +6,9 @@
 - `app.config` — загрузка конфигурации из `.env`, валидация переменных окружения, предоставление объектной модели настроек (RSS, OpenAI, Pexels, FreeImageHost, Google Sheets, планировщик).
 - `app.models` — дата-классы для обмена данными между модулями: `RawFeedEntry`, `NewsItem`, `RankedNews`, `GeneratedPost`, `ImageAsset`, `PublicationRecord`.
 - `app.rss` — получение RSS-лент с помощью `feedparser`, фильтрация по ключевым словам, нормализация полей и дедупликация.
-- `app.scoring` — обращение к OpenAI Chat/Completion API для оценки релевантности материала; реализует политику повторных попыток и кэширование по URL.
-- `app.post_generator` — формирование системного/пользовательского промтов и получение итогового текста поста (1500–3000 символов, 3–4 хэштега) с валидацией формата и повторами.
-- `app.image_pipeline` — многошаговый поиск изображения: данные RSS → Pexels API → генерация через OpenAI Images; загрузка результата на FreeImageHost.
+- `app.scoring` — обращение к OpenAI Responses API для оценки релевантности, кэширование по URL и повторные попытки.
+- `app.post_generator` — генерация двух версий поста (short до 600 символов и long ≈1000–1500 символов, 3–4 русских хэштега), с повторным запросом при ошибках JSON/длины и строгой валидацией.
+- `app.image_pipeline` — многошаговый поиск изображения: RSS → Pexels (по хэштегам, если есть) → генерация через OpenAI Images; загрузка результата на FreeImageHost.
 - `app.sheets` — работа с Google Sheets через `gspread`, авторизация по service account, запись строк формата MVP.
 - `app.orchestrator` — управление основным сценарием: сбор новостей → оценка → генерация поста → подбор изображения → запись в Google Sheets; содержит логику ретраев и метрик.
 - `app.scheduler` — планировщик запусков (07:00 и 19:00 Europe/Moscow) на основе `APScheduler`, регистрирует задачу `PipelineRunner`.
@@ -20,10 +20,11 @@
 1. `scheduler` инициирует запуск `PipelineRunner` в заданные окна времени.
 2. `PipelineRunner` (из `orchestrator`) получает конфигурацию через `config.load_settings()`.
 3. `rss.RSSCollector` собирает записи и возвращает список `NewsItem`.
-4. `scoring.RelevanceScorer` выставляет оценку и фильтрует материалы с рейтингом < 7.
-5. Для каждой релевантной новости `post_generator.PostComposer` создает финальный текст.
-6. `image_pipeline.ImageSelector` возвращает `ImageAsset` с финальным URL.
-7. `sheets.GoogleSheetsWriter` сериализует `PublicationRecord` и отправляет строку в Google Sheets.
+4. `scoring.RelevanceScorer` возвращает список оцененных новостей (кэширование + ретраи).
+5. `orchestrator` отбирает минимум три новости, предпочитая баллы 10 → 9 → 8 (не более пяти на цикл).
+6. `post_generator.PostComposer` генерирует short/long версии текста и русские хэштеги.
+7. `image_pipeline.ImageSelector` возвращает `ImageAsset` с финальным URL и источником.
+8. `sheets.GoogleSheetsWriter` сериализует `PublicationRecord` и отправляет строку в Google Sheets (краткая и длинная версии поста, источник изображения, кликабельный линк).
 
 3. Переменные окружения
 -----------------------

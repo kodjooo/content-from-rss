@@ -44,8 +44,8 @@ class PostComposer:
                 )
             except PostGenerationError as exc:
                 last_error = exc
-                if "Некорректный JSON" in str(exc) and attempt == 0:
-                    logger.warning("Повторная попытка генерации поста для %s из-за JSON-ошибки", item.link)
+                if ("Некорректный JSON" in str(exc) and attempt < 1) or ("Длина текста вне" in str(exc) and attempt < 2):
+                    logger.warning("Повторная попытка генерации поста для %s: %s", item.link, str(exc))
                     continue
                 raise
         if last_error:
