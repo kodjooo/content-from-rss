@@ -58,7 +58,20 @@ class PipelineRunner:
     def run(self) -> PipelineStats:
         """Запускает полный цикл обработки."""
         stats = PipelineStats()
-        news_items = self._rss.collect()
+        if self._should_reset_sheet():
+            try:
+                self._sheets.clear_records()
+                logger.info("Очистка Google Sheets перед утренним запуском")
+            except Exception:  # noqa: BLE001
+                logger.exception("Не удалось очистить Google Sheets")
+
+        try:
+            existing_links = self._sheets.fetch_existing_links()
+        except Exception:  # noqa: BLE001
+            logger.exception("Не удалось получить список ссылок из Google Sheets")
+            existing_links = set()
+
+        news_items = [item for item in self._rss.collect() if item.link not in existing_links]
         recent_items = self._filter_recent(news_items)
         stats.processed = len(recent_items)
 
@@ -119,6 +132,15 @@ class PipelineRunner:
             score=score,
             image_source=self._image_source_label(image.source),
         )
+
+    def _should_reset_sheet(self) -> bool:
+        """Определяет, нужно ли очистить таблицу перед запуском."""
+        run_hours = getattr(self._config.scheduler, "run_hours", (7, 19))
+        if not run_hours:
+            return False
+        earliest_hour = min(run_hours)
+        now_local = datetime.now(self._timezone)
+        return now_local.hour == earliest_hour
 
     def _filter_recent(self, items: Iterable[NewsItem]) -> list[NewsItem]:
         """Фильтрует новости по давности публикации (12 часов)."""

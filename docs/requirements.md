@@ -45,7 +45,7 @@ AI, Artificial Intelligence, Automation, Neural, ChatGPT, LLM, Anthropic, OpenAI
    - Если нет — создаёт image prompt через GPT и генерирует изображение
      через images.generate (OpenAI API).
    - Загружает результат на FreeImageHost, получает финальный URL и помечает источник.
-8) Все данные записываются в Google Sheets строкой.
+8) Перед утренним запуском таблица очищается; данные записываются в Google Sheets строкой без дубликатов по ссылке.
 
 ========================================================
 4. GOOGLE SHEETS СТРУКТУРА

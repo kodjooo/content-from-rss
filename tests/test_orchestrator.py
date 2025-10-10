@@ -53,11 +53,23 @@ class DummyImageSelector:
 
 
 class DummySheetsWriter:
-    def __init__(self) -> None:
+    def __init__(self, existing_links: set[str] | None = None) -> None:
         self.records = []
+        self.links = set(existing_links or [])
+        self.cleared = False
 
     def append_records(self, records):  # noqa: ANN001
         self.records.extend(records)
+        for record in records:
+            self.links.add(record.link)
+
+    def fetch_existing_links(self) -> set[str]:
+        return set(self.links)
+
+    def clear_records(self) -> None:
+        self.records.clear()
+        self.links.clear()
+        self.cleared = True
 
 
 @pytest.fixture()
@@ -134,3 +146,65 @@ def test_pipeline_runner_handles_failures(config: AppConfig) -> None:
     assert stats.published == 0
     assert stats.failed == 0
     assert sheets.records == []
+
+
+def test_pipeline_skips_existing_links(config: AppConfig) -> None:
+    news = NewsItem(
+        source="Test",
+        title="AI breakthrough",
+        link="https://example.com/1",
+        summary="Summary",
+        published=datetime.now(timezone.utc),
+        keywords=("AI",),
+        media_url=None,
+    )
+    collector = DummyCollector([news])
+    scorer = DummyScorer(10)
+    sheets = DummySheetsWriter(existing_links={news.link})
+    runner = PipelineRunner(
+        config,
+        rss_collector=collector,  # type: ignore[arg-type]
+        scorer=scorer,  # type: ignore[arg-type]
+        composer=DummyComposer(),
+        image_selector=DummyImageSelector(),
+        sheets_writer=sheets,  # type: ignore[arg-type]
+    )
+
+    stats = runner.run()
+
+    assert stats.processed == 0
+    assert stats.accepted == 0
+    assert sheets.records == []
+
+
+def test_pipeline_clears_sheet_on_reset(config: AppConfig) -> None:
+    class ResetPipeline(PipelineRunner):
+        def _should_reset_sheet(self) -> bool:  # noqa: D401
+            return True
+
+    news = NewsItem(
+        source="Test",
+        title="AI breakthrough",
+        link="https://example.com/1",
+        summary="Summary",
+        published=datetime.now(timezone.utc),
+        keywords=("AI",),
+        media_url=None,
+    )
+    collector = DummyCollector([news])
+    scorer = DummyScorer(10)
+    sheets = DummySheetsWriter(existing_links={"https://old.example"})
+    runner = ResetPipeline(
+        config,
+        rss_collector=collector,  # type: ignore[arg-type]
+        scorer=scorer,  # type: ignore[arg-type]
+        composer=DummyComposer(),
+        image_selector=DummyImageSelector(),
+        sheets_writer=sheets,  # type: ignore[arg-type]
+    )
+
+    runner.run()
+
+    assert sheets.cleared is True
+    assert len(sheets.records) == 1
+    assert sheets.records[0].link == news.link

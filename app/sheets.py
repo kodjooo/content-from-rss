@@ -38,14 +38,7 @@ class GoogleSheetsWriter:
 
     def append_records(self, records: Iterable[PublicationRecord]) -> None:
         """Добавляет несколько записей в таблицу."""
-        try:
-            spreadsheet = self._client.open_by_key(self._config.sheet_id)
-            worksheet = self._resolve_worksheet(spreadsheet)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Не удалось открыть Google Sheet: %s", exc)
-            raise
-
-        self._ensure_header(worksheet)
+        worksheet = self._open_worksheet()
 
         for record in records:
             row = self._serialize(record)
@@ -100,6 +93,37 @@ class GoogleSheetsWriter:
             worksheet.append_row(SHEET_HEADERS, value_input_option="RAW")
         elif normalized != SHEET_HEADERS:
             worksheet.update("1:1", [SHEET_HEADERS])
+
+    def _open_worksheet(self) -> gspread.Worksheet:
+        """Возвращает рабочий лист с гарантированным заголовком."""
+        try:
+            spreadsheet = self._client.open_by_key(self._config.sheet_id)
+            worksheet = self._resolve_worksheet(spreadsheet)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Не удалось открыть Google Sheet: %s", exc)
+            raise
+        self._ensure_header(worksheet)
+        return worksheet
+
+    def fetch_existing_links(self) -> set[str]:
+        """Возвращает множество ссылок, уже присутствующих в таблице."""
+        worksheet = self._open_worksheet()
+        try:
+            values = worksheet.col_values(4)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Не удалось получить список ссылок из Google Sheets: %s", exc)
+            raise
+        return {value.strip() for value in values[1:] if value.strip()}
+
+    def clear_records(self) -> None:
+        """Удаляет все строки кроме заголовка."""
+        worksheet = self._open_worksheet()
+        try:
+            worksheet.resize(rows=1)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Не удалось очистить Google Sheet: %s", exc)
+            raise
+        self._ensure_header(worksheet)
 
 
 __all__: Sequence[str] = ("GoogleSheetsWriter",)

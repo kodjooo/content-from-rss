@@ -30,6 +30,18 @@ class DummyWorksheet:
         else:
             self.rows.append(values[0])
 
+    def col_values(self, index: int) -> list[str]:  # noqa: ARG002
+        result: List[str] = []
+        for row in self.rows:
+            if len(row) >= index:
+                result.append(row[index - 1])
+            else:
+                result.append("")
+        return result
+
+    def resize(self, rows: int) -> None:
+        self.rows = self.rows[:rows]
+
 
 class DummySpreadsheet:
     def __init__(self) -> None:
@@ -94,3 +106,21 @@ def test_append_records_writes_rows(tmp_path, publication_record: PublicationRec
     assert "[Post title]" in data_row[6]
     assert data_row[8] == publication_record.image_source
     assert data_row[11].startswith("#")
+
+
+def test_fetch_links_and_clear(tmp_path, publication_record: PublicationRecord) -> None:
+    config = SheetsConfig(
+        sheet_id="sheet",
+        service_account_json=tmp_path / "credentials.json",
+        worksheet="Sheet1",
+    )
+    client = DummyClient()
+    writer = GoogleSheetsWriter(config, client=client)  # type: ignore[arg-type]
+
+    writer.append_records([publication_record])
+    links = writer.fetch_existing_links()
+    assert publication_record.link in links
+
+    writer.clear_records()
+    assert writer.fetch_existing_links() == set()
+    assert len(client.spreadsheet.sheet1.rows) == 1
