@@ -25,6 +25,9 @@ class PostComposer:
     def __init__(self, config: OpenAIConfig, client: OpenAI | None = None) -> None:
         self._config = config
         self._client = client or OpenAI(api_key=config.api_key)
+        self._supports_responses = hasattr(self._client, "responses") and hasattr(
+            getattr(self._client, "responses"), "create"
+        )
 
     def generate(self, item: NewsItem) -> GeneratedPost:
         """Генерирует пост для новости."""
@@ -44,11 +47,27 @@ class PostComposer:
         """Отправляет запрос в OpenAI."""
         prompt = self._build_prompt(item)
         logger.debug("Промт генерации поста для %s: %s", item.link, prompt)
-        response = self._client.responses.create(
-            model=self._config.model_post,
-            input=prompt,
-        )
-        text = getattr(response, "output_text", "")
+        if self._supports_responses:
+            response = self._client.responses.create(
+                model=self._config.model_post,
+                input=prompt,
+            )
+            text = getattr(response, "output_text", "")
+        else:
+            completion = self._client.chat.completions.create(
+                model=self._config.model_post,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Ты — Марк Аборчи, AI-специалист и IT-автоматизатор с прошлым опытом проектного менеджмента. "
+                            "Возвращай строго корректный JSON с ключами title, body, hashtags."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            text = self._extract_chat_text(completion)
         if not text:
             raise PostGenerationError("Пустой ответ модели")
         return text
@@ -95,6 +114,23 @@ class PostComposer:
         if len(hashtags_list) < 3 or len(hashtags_list) > 4:
             raise PostGenerationError("Количество хэштегов должно быть от 3 до 4")
         payload["hashtags"] = hashtags_list
+
+    def _extract_chat_text(self, completion) -> str:
+        """Достает текст из chat.completions."""
+        try:
+            message = completion.choices[0].message
+            content = getattr(message, "content", "")
+        except (AttributeError, IndexError):
+            return ""
+        if isinstance(content, list):
+            parts: list[str] = []
+            for part in content:
+                if isinstance(part, dict):
+                    parts.append(str(part.get("text", "")))
+                else:
+                    parts.append(str(part))
+            return "\n".join(parts).strip()
+        return str(content or "").strip()
 
 
 __all__: Sequence[str] = ("PostComposer", "PostGenerationError")

@@ -28,6 +28,9 @@ class RelevanceScorer:
         self._cache_path.parent.mkdir(parents=True, exist_ok=True)
         self._cache = self._load_cache()
         self._client = client or OpenAI(api_key=config.api_key)
+        self._supports_responses = hasattr(self._client, "responses") and hasattr(
+            getattr(self._client, "responses"), "create"
+        )
 
     def evaluate_many(self, items: Iterable[NewsItem]) -> list[RankedNews]:
         """Оценивает список новостей."""
@@ -69,11 +72,24 @@ class RelevanceScorer:
         """Отправляет запрос в OpenAI и возвращает текст ответа."""
         prompt = self._build_prompt(item)
         logger.debug("Промт для оценки новости %s: %s", item.link, prompt)
-        response = self._client.responses.create(
+        if self._supports_responses:
+            response = self._client.responses.create(
+                model=self._config.model_rank,
+                input=prompt,
+            )
+            return getattr(response, "output_text", "").strip()
+
+        completion = self._client.chat.completions.create(
             model=self._config.model_rank,
-            input=prompt,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Ты оцениваешь релевантность новости тематике искусственного интеллекта.",
+                },
+                {"role": "user", "content": prompt},
+            ],
         )
-        return getattr(response, "output_text", "").strip()
+        return self._extract_chat_text(completion)
 
     def _build_prompt(self, item: NewsItem) -> str:
         """Формирует текст промта."""
@@ -96,6 +112,23 @@ class RelevanceScorer:
         score = max(1, min(score, 10))
         notes = text
         return score, notes
+
+    def _extract_chat_text(self, completion) -> str:
+        """Извлекает текст из ответа chat.completions."""
+        try:
+            message = completion.choices[0].message
+            content = getattr(message, "content", "")
+        except (AttributeError, IndexError):
+            return ""
+        if isinstance(content, list):
+            parts: list[str] = []
+            for part in content:
+                if isinstance(part, dict):
+                    parts.append(str(part.get("text", "")))
+                else:
+                    parts.append(str(part))
+            return "\n".join(parts).strip()
+        return str(content or "").strip()
 
     def _load_cache(self) -> dict[str, dict[str, object]]:
         """Загружает кэш из файла."""
