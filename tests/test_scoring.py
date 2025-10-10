@@ -10,7 +10,7 @@ from app.models import NewsItem
 from app.scoring import RelevanceScorer
 
 
-class DummyResponsesClient:
+class DummyClient:
     def __init__(self, responses: list[str]) -> None:
         self._responses = responses
         self.calls: int = 0
@@ -19,7 +19,7 @@ class DummyResponsesClient:
         raise NotImplementedError
 
     class _Wrapper:
-        def __init__(self, parent: "DummyResponsesClient") -> None:
+        def __init__(self, parent: "DummyClient") -> None:
             self._parent = parent
 
         def create(self, model: str, input: str) -> SimpleNamespace:  # noqa: ARG002
@@ -27,39 +27,8 @@ class DummyResponsesClient:
             return SimpleNamespace(output_text=self._parent._responses[self._parent.calls - 1])
 
     @property
-    def responses(self) -> "DummyResponsesClient._Wrapper":  # type: ignore[override]
-        return DummyResponsesClient._Wrapper(self)
-
-
-class DummyChatClient:
-    def __init__(self, responses: list[str]) -> None:
-        self._responses = responses
-        self.calls = 0
-        self.chat = self._Chat(self)
-
-    class _Chat:
-        def __init__(self, parent: "DummyChatClient") -> None:
-            self.completions = DummyChatClient._Completions(parent)
-
-    class _Message:
-        def __init__(self, content: str) -> None:
-            self.content = content
-
-    class _Choice:
-        def __init__(self, content: str) -> None:
-            self.message = DummyChatClient._Message(content)
-
-    class _Completion:
-        def __init__(self, content: str) -> None:
-            self.choices = [DummyChatClient._Choice(content)]
-
-    class _Completions:
-        def __init__(self, parent: "DummyChatClient") -> None:
-            self._parent = parent
-
-        def create(self, model: str, messages: list[dict[str, str]]) -> "DummyChatClient._Completion":  # noqa: ARG002
-            self._parent.calls += 1
-            return DummyChatClient._Completion(self._parent._responses[self._parent.calls - 1])
+    def responses(self) -> "DummyClient._Wrapper":  # type: ignore[override]
+        return DummyClient._Wrapper(self)
 
 
 @pytest.fixture()
@@ -82,7 +51,7 @@ def news_item() -> NewsItem:
 
 def test_evaluate_parses_score(tmp_cache: Path, news_item: NewsItem) -> None:
     config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
-    client = DummyResponsesClient(["score: 9 — стоит опубликовать"])
+    client = DummyClient(["score: 9 — стоит опубликовать"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 
     ranked = scorer.evaluate(news_item)
@@ -94,7 +63,7 @@ def test_evaluate_parses_score(tmp_cache: Path, news_item: NewsItem) -> None:
 
 def test_evaluate_uses_cache(tmp_cache: Path, news_item: NewsItem) -> None:
     config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
-    client = DummyResponsesClient(["score: 8"])
+    client = DummyClient(["score: 8"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 
     first = scorer.evaluate(news_item)
@@ -107,21 +76,9 @@ def test_evaluate_uses_cache(tmp_cache: Path, news_item: NewsItem) -> None:
 
 def test_evaluate_handles_invalid_response(tmp_cache: Path, news_item: NewsItem) -> None:
     config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
-    client = DummyResponsesClient(["непонятный ответ"])
+    client = DummyClient(["непонятный ответ"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 
     ranked = scorer.evaluate(news_item)
 
     assert ranked is None
-
-
-def test_evaluate_falls_back_to_chat(tmp_cache: Path, news_item: NewsItem) -> None:
-    config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
-    client = DummyChatClient(["score: 7 — приемлемо"])
-    scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)  # type: ignore[arg-type]
-
-    ranked = scorer.evaluate(news_item)
-
-    assert ranked is not None
-    assert ranked.score == 7
-    assert client.calls == 1
