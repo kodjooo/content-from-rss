@@ -19,6 +19,7 @@ SHEET_HEADERS = [
     "Title",
     "Link",
     "Summary",
+    "Short Post",
     "GPT Post",
     "Image URL",
     "Image Source",
@@ -57,7 +58,11 @@ class GoogleSheetsWriter:
 
     def _serialize(self, record: PublicationRecord) -> list[str]:
         """Формирует строку согласно структуре таблицы."""
-        post_text = record.post.formatted()
+        base_body = record.post.formatted().strip()
+        full_body = f"{record.post.title}\n\n{base_body}".strip()
+        full_body = f"{full_body}\n\nИсточник: {record.link}".strip()
+        short_text = f"{record.post.title}\n\n{record.post.short_body}".strip()
+        short_text = f"{short_text}\n\nИсточник: {record.link}".strip()
         hashtags_line = " ".join(f"#{tag}" for tag in record.post.hashtags)
         date_value = record.date if isinstance(record.date, str) else record.date.isoformat()
         return [
@@ -66,7 +71,8 @@ class GoogleSheetsWriter:
             record.title,
             record.link,
             record.summary,
-            post_text,
+            short_text,
+            full_body,
             record.image.url,
             record.image_source,
             str(record.score),

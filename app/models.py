@@ -48,12 +48,12 @@ class GeneratedPost:
     title: str
     body: str
     summary: str
+    short_body: str
     hashtags: tuple[str, ...]
 
     def formatted(self) -> str:
-        """Возвращает полный текст поста."""
-        hashtags_line = " ".join(f"#{tag}" for tag in self.hashtags)
-        return f"{self.body}\n\n{hashtags_line}".strip()
+        """Возвращает основной текст поста (без хэштегов)."""
+        return self.body
 
 
 @dataclass

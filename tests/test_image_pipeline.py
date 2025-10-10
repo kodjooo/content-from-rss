@@ -31,6 +31,7 @@ def generated_post() -> GeneratedPost:
         title="Generated",
         body="A" * 1500,
         summary="Краткое описание",
+        short_body="Сжатая версия поста",
         hashtags=("AI", "Automation", "Innovation"),
     )
 

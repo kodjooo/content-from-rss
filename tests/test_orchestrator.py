@@ -42,6 +42,7 @@ class DummyComposer:
             title=f"RU {item.title}",
             body="A" * 1500,
             summary="Краткое описание",
+            short_body="Короткая версия",
             hashtags=("AI", "Tech", "News"),
         )
 
