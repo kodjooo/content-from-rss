@@ -28,17 +28,29 @@ class PostComposer:
 
     def generate(self, item: NewsItem) -> GeneratedPost:
         """Генерирует пост для новости."""
-        raw_text = self._request_post(item)
-        payload = self._parse_payload(raw_text)
-        self._validate_payload(payload)
-        hashtags = tuple(payload["hashtags"])
-        return GeneratedPost(
-            title=payload["title"],
-            body=payload["body"],
-            summary=payload["summary"],
-            short_body=payload["short_body"],
-            hashtags=hashtags,
-        )
+        last_error: PostGenerationError | None = None
+        for attempt in range(2):
+            raw_text = self._request_post(item)
+            try:
+                payload = self._parse_payload(raw_text)
+                self._validate_payload(payload)
+                hashtags = tuple(payload["hashtags"])
+                return GeneratedPost(
+                    title=payload["title"],
+                    body=payload["body"],
+                    summary=payload["summary"],
+                    short_body=payload["short_body"],
+                    hashtags=hashtags,
+                )
+            except PostGenerationError as exc:
+                last_error = exc
+                if "Некорректный JSON" in str(exc) and attempt == 0:
+                    logger.warning("Повторная попытка генерации поста для %s из-за JSON-ошибки", item.link)
+                    continue
+                raise
+        if last_error:
+            raise last_error
+        raise PostGenerationError("Не удалось сформировать пост")
 
     @retry(
         reraise=True,
@@ -118,7 +130,7 @@ class PostComposer:
         if not isinstance(body, str):
             raise PostGenerationError("Поле body должно быть строкой")
         length = len(body)
-        if length < 1000 or length > 1500:
+        if length < 800 or length > 1700:
             raise PostGenerationError(f"Длина текста вне требуемого диапазона: {length}")
         if not isinstance(summary, str) or not summary.strip():
             raise PostGenerationError("Поле summary должно быть непустой строкой")
