@@ -36,6 +36,9 @@ class PipelineScheduler:
     def start(self, block: bool = True) -> None:
         """Запускает планировщик."""
         setup_logging(self._config.log_level)
+        if self._config.scheduler.run_once_on_start:
+            logger.info("Выполняется разовый запуск пайплайна при старте")
+            self.run_once()
         self.schedule_jobs()
         self._scheduler.start()
         logger.info("Планировщик запущен")

@@ -62,6 +62,7 @@ class SchedulerConfig:
 
     timezone: str
     run_hours: tuple[int, ...] = field(default=(7, 19))
+    run_once_on_start: bool = True
 
 
 @dataclass(frozen=True)
@@ -90,6 +91,13 @@ def _require(value: str | None, name: str) -> str:
     if not value:
         raise ValueError(f"Не указана обязательная переменная окружения: {name}")
     return value
+
+
+def _as_bool(value: str | None, default: bool = False) -> bool:
+    """Преобразует строку в булево значение."""
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def load_settings(dotenv_path: str | None = None) -> AppConfig:
@@ -143,6 +151,7 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
     scheduler = SchedulerConfig(
         timezone=os.getenv("SCHEDULER_TIMEZONE", "Europe/Moscow"),
         run_hours=(7, 19),
+        run_once_on_start=_as_bool(os.getenv("RUN_PIPELINE_ON_START"), default=True),
     )
 
     cache_dir = Path(os.getenv("CACHE_DIR", ".cache"))

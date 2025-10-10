@@ -15,30 +15,22 @@
 - Docker / Docker Compose для контейнерного деплоя.
 - Активные ключи OpenAI, Pexels, FreeImageHost и сервисный аккаунт Google.
 
-## Настройка окружения
-1. Установите зависимости:
-   ```bash
-   python -m pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-2. Сгенерируйте `.env` из шаблона (при необходимости будут созданы случайные секреты):
-   ```bash
-   python scripts/setup_env.py --force
-   ```
-3. Проверьте и дополните `.env` нужными значениями:
-   - `OPENAI_API_KEY`
-   - `PEXELS_API_KEY`
-   - `FREEIMAGEHOST_API_KEY`
-   - `SHEET_ID`
-   - `SHEET_WORKSHEET` (название вкладки в таблице)
-   - `GOOGLE_SERVICE_ACCOUNT_JSON` (путь до JSON сервисного аккаунта)
+## Окружение и конфигурация
+- Основной способ развертывания — Docker Compose (см. раздел ниже).
+- Перед сборкой скопируйте `.env.example` в `.env` и заполните обязательные переменные: `OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `RUN_PIPELINE_ON_START` (можно отключить стартовый прогон, указав `false`).
+- Файл сервисного аккаунта Google поместите в `secrets/` по пути, указанному в переменной `GOOGLE_SERVICE_ACCOUNT_JSON`.
+- Для удобного заполнения `.env` можно воспользоваться скриптом:
+  ```bash
+  python scripts/setup_env.py --force
+  ```
 
-## Локальный запуск
-- Единичный прогон пайплайна:
+## Локальная разработка (опционально)
+Локальный запуск вне Docker используется только для отладки.
+- Прогон одного цикла:
   ```bash
   python -m app.main --mode run-once
   ```
-- Запуск по расписанию (блокирующий режим):
+- Запуск по расписанию:
   ```bash
   python -m app.main --mode scheduler
   ```
