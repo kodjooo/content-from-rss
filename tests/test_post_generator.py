@@ -45,6 +45,7 @@ def make_payload(body_length: int, hashtags: list[str]) -> str:
     body = "A" * body_length
     data = {
         "title": "Generated",
+        "translated_title": "Сгенерированный заголовок",
         "summary": "Краткое описание новости.",
         "short_body": "Короткая версия поста до 600 символов.",
         "body": body,

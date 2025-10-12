@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import List
 
 import pytest
+from gspread.exceptions import WorksheetNotFound
 
 from app.config import SheetsConfig
 from app.models import GeneratedPost, ImageAsset, PublicationRecord
@@ -11,7 +13,8 @@ from app.sheets import GoogleSheetsWriter
 
 
 class DummyWorksheet:
-    def __init__(self) -> None:
+    def __init__(self, title: str) -> None:
+        self.title = title
         self.rows: List[list[str]] = []
 
     def append_row(self, row: list[str], value_input_option: str = "RAW") -> None:  # noqa: ARG002
@@ -45,13 +48,19 @@ class DummyWorksheet:
 
 class DummySpreadsheet:
     def __init__(self) -> None:
-        self.sheet1 = DummyWorksheet()
+        self.id = "dummy-spreadsheet"
+        self.sheet1 = DummyWorksheet("Sheet1")
         self._worksheets = {"Sheet1": self.sheet1}
 
     def worksheet(self, title: str) -> DummyWorksheet:
         if title in self._worksheets:
             return self._worksheets[title]
-        raise Exception("Worksheet not found")
+        raise WorksheetNotFound(f"{title} not found")  # type: ignore[name-defined]
+
+    def add_worksheet(self, title: str, rows: int, cols: int) -> DummyWorksheet:  # noqa: ARG002
+        worksheet = DummyWorksheet(title)
+        self._worksheets[title] = worksheet
+        return worksheet
 
 
 class DummyClient:
@@ -69,11 +78,12 @@ def publication_record() -> PublicationRecord:
     return PublicationRecord(
         date=datetime(2024, 1, 1, tzinfo=timezone.utc),
         source="Test Source",
-        title="AI News",
+        title="Новости об ИИ",
         link="https://example.com/news",
         summary="Краткое описание",
         post=GeneratedPost(
             title="Post title",
+            translated_title="Новости об ИИ",
             summary="Краткое описание",
             body="Body" * 400,
             short_body="Короткая версия",
@@ -102,10 +112,12 @@ def test_append_records_writes_rows(tmp_path, publication_record: PublicationRec
     data_row = client.spreadsheet.sheet1.rows[1]
     assert header[0] == "Date"
     assert data_row[0].startswith("2024-01-01")
-    assert data_row[5].startswith("#главная_новость")
-    assert "[Post title]" in data_row[6]
-    assert data_row[8] == publication_record.image_source
-    assert data_row[11].startswith("#")
+    assert data_row[2] == publication_record.title
+    assert data_row[5] == f"{publication_record.post.short_body}\n\nЧитать подробнее >"
+    telegraph_payload = json.loads(data_row[7])
+    assert telegraph_payload[-1]["children"][0]["attrs"]["href"] == publication_record.link
+    assert data_row[9] == publication_record.image_source
+    assert data_row[12] == " ".join(f"#{tag}" for tag in publication_record.post.hashtags)
 
 
 def test_fetch_links_and_clear(tmp_path, publication_record: PublicationRecord) -> None:

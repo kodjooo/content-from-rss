@@ -29,6 +29,7 @@ def news_item() -> NewsItem:
 def generated_post() -> GeneratedPost:
     return GeneratedPost(
         title="Generated",
+        translated_title="Переведённый заголовок",
         body="A" * 1500,
         summary="Краткое описание",
         short_body="Сжатая версия поста",

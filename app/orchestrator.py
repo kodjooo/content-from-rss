@@ -124,7 +124,7 @@ class PipelineRunner:
         return PublicationRecord(
             date=date_str,
             source=news.source,
-            title=post.title,
+            title=post.translated_title,
             link=news.link,
             summary=post.summary,
             post=post,

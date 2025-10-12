@@ -37,6 +37,7 @@ class PostComposer:
                 hashtags = tuple(payload["hashtags"])
                 return GeneratedPost(
                     title=payload["title"],
+                    translated_title=payload["translated_title"],
                     body=payload["body"],
                     summary=payload["summary"],
                     short_body=payload["short_body"],
@@ -89,6 +90,7 @@ class PostComposer:
             "- Хэштеги отражают ключевые темы новости.\n\n"
 
             "Формат ответа — строго JSON:\n"
+            "translated_title — дословный перевод оригинального заголовка новости на русский язык (до 120 символов).\n"
             "title — заголовок до 100 символов.\n"
             "summary — краткое изложение (300–400 символов).\n"
             "short_body — короткая версия поста (до 600 символов, без хэштегов).\n"
@@ -97,6 +99,7 @@ class PostComposer:
 
             "Пример ответа:\n"
             "{"
+            "\"translated_title\": \"Переведённый заголовок новости...\","
             "\"title\": \"ИИ перестал быть инструктором — он стал бизнес-партнёром\","
             "\"summary\": \"Краткое резюме на 300–400 символов...\","
             "\"short_body\": \"Сжатый текст до 600 символов...\","
@@ -120,9 +123,14 @@ class PostComposer:
 
     def _validate_payload(self, payload: dict[str, object]) -> None:
         """Проверяет структуру и ограничения результата."""
-        for field in ("title", "summary", "short_body", "body", "hashtags"):
+        for field in ("translated_title", "title", "summary", "short_body", "body", "hashtags"):
             if field not in payload:
                 raise PostGenerationError(f"Отсутствует поле {field}")
+        translated_title = payload["translated_title"]
+        if not isinstance(translated_title, str) or not translated_title.strip():
+            raise PostGenerationError("Поле translated_title должно быть непустой строкой")
+        if len(translated_title) > 200:
+            raise PostGenerationError("Поле translated_title должно быть не длиннее 200 символов")
         body = payload["body"]
         summary = payload["summary"]
         short_body = payload["short_body"].strip()

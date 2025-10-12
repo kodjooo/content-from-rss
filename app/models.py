@@ -46,6 +46,7 @@ class GeneratedPost:
     """Сгенерированный текстовый пост."""
 
     title: str
+    translated_title: str
     body: str
     summary: str
     short_body: str
@@ -80,6 +81,9 @@ class PublicationRecord:
     image_source: str
     status: str = "Written"
     notes: str | None = None
+    telegraph_link: str | None = None
+    vk_post_link: str | None = None
+    tg_post_link: str | None = None
 
     def as_row(self) -> list[str]:
         """Преобразует запись в строку для Google Sheets."""
@@ -91,12 +95,18 @@ class PublicationRecord:
             self.title,
             self.link,
             self.summary,
+            self.post.short_body,
+            self.post.title,
             self.post.formatted(),
             self.image.url,
             self.image_source,
             str(self.score),
             self.status,
-            self.notes or hashtags_line,
+            hashtags_line,
+            self.notes or "",
+            self.telegraph_link or "",
+            self.vk_post_link or "",
+            self.tg_post_link or "",
         ]
 
 
