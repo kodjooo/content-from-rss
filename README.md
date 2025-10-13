@@ -55,7 +55,7 @@
 1. Подготовьте сервер с Docker и Docker Compose (Linux x86_64 или ARM64).
 2. Склонируйте репозиторий:
    ```bash
-   git clone git@github.com:kodjooo/content-from-rss.git
+   git clone https://github.com/kodjooo/content-from-rss.git
    cd content-from-rss
    ```
 3. Скопируйте `.env.example` в `.env` и заполните переменные (`OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`).
