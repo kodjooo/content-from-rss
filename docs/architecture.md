@@ -24,7 +24,7 @@
 5. `orchestrator` отбирает минимум три новости, предпочитая баллы 10 → 9 → 8 (не более пяти на цикл).
 6. `post_generator.PostComposer` генерирует short/long версии текста и русские хэштеги.
 7. `image_pipeline.ImageSelector` возвращает `ImageAsset` с финальным URL и источником.
-8. `sheets.GoogleSheetsWriter` сериализует `PublicationRecord`, записывает строку с полями RSS-вкладки (переведённый заголовок, JSON для Telegra.ph, хэштеги с символом #) и раскладывает хэштеги по отдельной вкладке.
+8. `sheets.GoogleSheetsWriter` сериализует `PublicationRecord` и записывает строку на основной лист (переведённый заголовок, JSON для Telegra.ph, хэштеги с символом #); отдельная вкладка под хэштеги больше не создаётся.
 
 3. Переменные окружения
 -----------------------
@@ -32,6 +32,7 @@
 - `GOOGLE_SERVICE_ACCOUNT_JSON` — путь к JSON с данными сервисного аккаунта.
 - `SHEET_WORKSHEET` — название вкладки, куда записываются строки (по умолчанию Sheet1).
 - `PEXELS_API_KEY` — токен доступа к Pexels API.
+- `SKIP_PEXELS_SEARCH` — пропустить шаг поиска изображения в Pexels (true/false, по умолчанию false).
 - `FREEIMAGEHOST_API_KEY` — ключ для загрузки изображений.
 - `OPENAI_API_KEY` — ключ OpenAI.
 - `OPENAI_MODEL_RANK` — модель для оценки релевантности (по умолчанию `gpt-4o-mini`).

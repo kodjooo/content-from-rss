@@ -19,7 +19,7 @@
 
 ## Окружение и конфигурация
 - Основной способ развертывания — Docker Compose (см. раздел ниже).
-- Перед сборкой скопируйте `.env.example` в `.env` и заполните обязательные переменные: `OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `RUN_PIPELINE_ON_START` (можно отключить стартовый прогон, указав `false`).
+- Перед сборкой скопируйте `.env.example` в `.env` и заполните обязательные переменные: `OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `RUN_PIPELINE_ON_START` (можно отключить стартовый прогон, указав `false`). Опциональная переменная `SKIP_PEXELS_SEARCH=true` позволяет пропустить поиск изображений в Pexels и сразу переходить к генерации, когда в RSS нет вложения.
 - Файл сервисного аккаунта Google поместите в `secrets/` по пути, указанному в переменной `GOOGLE_SERVICE_ACCOUNT_JSON`.
 - Для удобного заполнения `.env` можно воспользоваться скриптом:
   ```bash
@@ -58,7 +58,7 @@
    git clone https://github.com/kodjooo/content-from-rss.git
    cd content-from-rss
    ```
-3. Скопируйте `.env.example` в `.env` и заполните переменные (`OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`).
+3. Скопируйте `.env.example` в `.env` и заполните переменные (`OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`). При необходимости установите `SKIP_PEXELS_SEARCH=true`, чтобы пропустить обращение к Pexels.
 4. Загрузите файл сервисного аккаунта Google в каталог `secrets/` (путь должен совпадать с `GOOGLE_SERVICE_ACCOUNT_JSON`).
 5. Запустите сервис в фоне:
    ```bash

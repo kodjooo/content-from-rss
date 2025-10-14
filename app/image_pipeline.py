@@ -73,6 +73,9 @@ class ImageSelector:
 
     def _from_pexels(self, news: NewsItem, post: GeneratedPost) -> _ImageCandidate | None:
         """Поиск изображения в Pexels."""
+        if not self._pexels.enabled:
+            return None
+
         hashtags = [tag.replace("#", "").strip() for tag in post.hashtags if tag.strip()]
         query = " ".join(hashtags) if hashtags else (news.title or "artificial intelligence")
         headers = {"Authorization": self._pexels.api_key}

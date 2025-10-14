@@ -78,13 +78,13 @@ def config(tmp_path: Path) -> AppConfig:
     return AppConfig(
         rss=RSSConfig(sources=(), keywords=("AI",), similarity_threshold=0.8, max_items=10),
         openai=OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
-        pexels=PexelsConfig(api_key="pexels", timeout=5),
-    freeimagehost=FreeImageHostConfig(api_key="freeimage", endpoint="https://freeimage.host/api", timeout=5),
-    sheets=SheetsConfig(
-        sheet_id="sheet",
-        service_account_json=tmp_path / "credentials.json",
-        worksheet="Sheet1",
-    ),
+        pexels=PexelsConfig(api_key="pexels", timeout=5, enabled=True),
+        freeimagehost=FreeImageHostConfig(api_key="freeimage", endpoint="https://freeimage.host/api", timeout=5),
+        sheets=SheetsConfig(
+            sheet_id="sheet",
+            service_account_json=tmp_path / "credentials.json",
+            worksheet="Sheet1",
+        ),
         scheduler=SchedulerConfig(timezone="Europe/Moscow"),
         cache_dir=tmp_path,
         log_level="INFO",

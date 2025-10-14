@@ -36,6 +36,7 @@ class PexelsConfig:
 
     api_key: str
     timeout: int
+    enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -123,9 +124,17 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
         model_image=os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1"),
     )
 
+    skip_pexels = _as_bool(os.getenv("SKIP_PEXELS_SEARCH"), default=False)
+    pexels_key = os.getenv("PEXELS_API_KEY")
+    if skip_pexels:
+        pexels_key = pexels_key or ""
+    else:
+        pexels_key = _require(pexels_key, "PEXELS_API_KEY")
+
     pexels = PexelsConfig(
-        api_key=_require(os.getenv("PEXELS_API_KEY"), "PEXELS_API_KEY"),
+        api_key=pexels_key,
         timeout=int(os.getenv("PEXELS_API_TIMEOUT", "20")),
+        enabled=not skip_pexels,
     )
 
     freeimagehost = FreeImageHostConfig(

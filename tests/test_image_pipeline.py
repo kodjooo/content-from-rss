@@ -41,7 +41,7 @@ def generated_post() -> GeneratedPost:
 def config_bundle(tmp_path_factory) -> tuple[PexelsConfig, FreeImageHostConfig, OpenAIConfig, requests.Session]:
     session = requests.Session()
     return (
-        PexelsConfig(api_key="pexels", timeout=5),
+        PexelsConfig(api_key="pexels", timeout=5, enabled=True),
         FreeImageHostConfig(api_key="freeimage", endpoint="https://freeimage.host/api/1/upload", timeout=5),
         OpenAIConfig(api_key="openai", model_rank="gpt", model_post="gpt", model_image="img"),
         session,
@@ -166,6 +166,41 @@ def test_select_generates_image_when_sources_fail(generated_post: GeneratedPost,
 
     assert asset.source == "openai"
     assert asset.url.endswith("generated")
+
+
+@responses.activate
+def test_select_skips_pexels_when_disabled(generated_post: GeneratedPost, config_bundle) -> None:
+    _, freeimage, openai_config, session = config_bundle
+    pexels_disabled = PexelsConfig(api_key="", timeout=5, enabled=False)
+    news = NewsItem(
+        source="https://example.com/feed",
+        title="AI robotics",
+        link="https://example.com/4",
+        summary="Robotics summary",
+        published=None,
+        keywords=("AI",),
+        media_url=None,
+    )
+    responses.add(
+        responses.POST,
+        freeimage.endpoint,
+        json={"image": {"url": "https://freeimage.host/img/generated-disabled"}},
+        status=200,
+    )
+    payload = base64.b64encode(b"image-disabled").decode()
+
+    selector = ImageSelector(
+        pexels_disabled,
+        freeimage,
+        openai_config,
+        session=session,
+        client=DummyImageClient(payload),
+    )
+
+    asset = selector.select(news, generated_post)
+
+    assert asset.source == "openai"
+    assert asset.url.endswith("generated-disabled")
 
 
 @responses.activate
