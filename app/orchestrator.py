@@ -121,6 +121,7 @@ class PipelineRunner:
         """Формирует объект для сохранения."""
         now = datetime.now(self._timezone)
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        status = "Revised" if score >= 9 else "Written"
         return PublicationRecord(
             date=date_str,
             source=news.source,
@@ -131,6 +132,7 @@ class PipelineRunner:
             image=image,
             score=score,
             image_source=self._image_source_label(image.source),
+            status=status,
         )
 
     def _should_reset_sheet(self) -> bool:

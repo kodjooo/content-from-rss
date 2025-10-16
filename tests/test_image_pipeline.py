@@ -33,6 +33,7 @@ def generated_post() -> GeneratedPost:
         body="A" * 1500,
         summary="Краткое описание",
         short_body="Сжатая версия поста",
+        average_body="Средний формат поста",
         hashtags=("AI", "Automation", "Innovation"),
     )
 

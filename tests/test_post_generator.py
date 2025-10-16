@@ -48,6 +48,7 @@ def make_payload(body_length: int, hashtags: list[str]) -> str:
         "translated_title": "Сгенерированный заголовок",
         "summary": "Краткое описание новости.",
         "short_body": "Короткая версия поста до 600 символов.",
+        "average_body": "Средняя версия поста " + "A" * (min(body_length, 300)),
         "body": body,
         "hashtags": hashtags,
     }
@@ -67,6 +68,7 @@ def test_generate_returns_valid_post(news_item: NewsItem) -> None:
     assert post.summary.startswith("Краткое")
     assert len(post.body) == 1500
     assert post.short_body.startswith("Короткая версия")
+    assert post.average_body.startswith("Средняя версия поста")
     assert post.hashtags == ("AI", "Automation", "Innovation")
 
 
@@ -85,6 +87,25 @@ def test_generate_raises_on_invalid_json(news_item: NewsItem) -> None:
     composer = PostComposer(
         OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
         client=DummyClient("invalid json"),
+    )
+
+    with pytest.raises(PostGenerationError):
+        composer.generate(news_item)
+
+
+def test_generate_raises_on_average_overflow(news_item: NewsItem) -> None:
+    data = {
+        "title": "Generated",
+        "translated_title": "Сгенерированный заголовок",
+        "summary": "Краткое описание новости.",
+        "short_body": "Короткая версия поста до 600 символов.",
+        "average_body": "A" * 1001,
+        "body": "B" * 1200,
+        "hashtags": ["AI", "Automation", "Innovation"],
+    }
+    composer = PostComposer(
+        OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        client=DummyClient(json.dumps(data)),
     )
 
     with pytest.raises(PostGenerationError):

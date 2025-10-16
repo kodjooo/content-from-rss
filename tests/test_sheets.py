@@ -87,6 +87,7 @@ def publication_record() -> PublicationRecord:
             summary="Краткое описание",
             body="Body" * 400,
             short_body="Короткая версия",
+            average_body="Средний формат",
             hashtags=("AI", "Automation", "Innovation"),
         ),
         image=ImageAsset(url="https://images.example.com/img.jpg", source="rss"),
@@ -114,10 +115,11 @@ def test_append_records_writes_rows(tmp_path, publication_record: PublicationRec
     assert data_row[0].startswith("2024-01-01")
     assert data_row[2] == publication_record.title
     assert data_row[5] == f"{publication_record.post.short_body}\n\nЧитать подробнее >"
-    telegraph_payload = json.loads(data_row[7])
+    assert data_row[6] == f"{publication_record.post.average_body}\n\nИсточник >"
+    telegraph_payload = json.loads(data_row[8])
     assert telegraph_payload[-1]["children"][0]["attrs"]["href"] == publication_record.link
-    assert data_row[9] == publication_record.image_source
-    assert data_row[12] == " ".join(f"#{tag}" for tag in publication_record.post.hashtags)
+    assert data_row[10] == publication_record.image_source
+    assert data_row[13] == " ".join(f"#{tag}" for tag in publication_record.post.hashtags)
 
 
 def test_fetch_links_and_clear(tmp_path, publication_record: PublicationRecord) -> None:

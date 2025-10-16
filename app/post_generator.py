@@ -41,6 +41,7 @@ class PostComposer:
                     body=payload["body"],
                     summary=payload["summary"],
                     short_body=payload["short_body"],
+                    average_body=payload["average_body"],
                     hashtags=hashtags,
                 )
             except PostGenerationError as exc:
@@ -78,14 +79,15 @@ class PostComposer:
         return (
             "Ты — Марк Аборчи, AI-специалист и IT-автоматизатор с прошлым опытом проектного менеджмента.\n"
             "Пиши строго на русском языке.\n"
-            "Сгенерируй две версии поста: длинную (1000–1500 символов) и короткую (до 600 символов).\n"
-            "Обе версии должны быть аналитическими, с акцентом на практические выводы для IT-специалистов и владельцев бизнеса.\n\n"
+            "Сгенерируй три версии поста: длинную (1000–1500 символов), среднюю (до 1000 символов без пробелов) и короткую (до 600 символов).\n"
+            "Все версии должны быть аналитическими, с акцентом на практические выводы для IT-специалистов и владельцев бизнеса.\n\n"
 
             "Требования:\n"
             "- Делай выводы и разворачивай личную позицию от первого лица.\n"
             "- В длинной версии выделяй ключевые мысли при помощи **жирного** форматирования (там, где это уместно).\n"
-            "- Не вставляй хэштеги в тексты длинной и короткой версий.\n"
+            "- Не вставляй хэштеги в тексты длинной, средней и короткой версий.\n"
             "- Короткая версия должна быть ёмким пересказом основных тезисов (до 600 символов).\n"
+            "- Средняя версия (average_body) должна быть до 1000 символов без учёта пробелов.\n"
             "- Используй только русские слова в списке hashtags (кириллица), без символа #.\n"
             "- Хэштеги отражают ключевые темы новости.\n\n"
 
@@ -94,6 +96,7 @@ class PostComposer:
             "title — заголовок до 100 символов.\n"
             "summary — краткое изложение (300–400 символов).\n"
             "short_body — короткая версия поста (до 600 символов, без хэштегов).\n"
+            "average_body — средняя версия поста (до 1000 символов без пробелов, без хэштегов).\n"
             "body — длинная версия поста (1000–1500 символов, без хэштегов).\n"
             "hashtags — список из 3–4 русских слов без символа #.\n\n"
 
@@ -103,6 +106,7 @@ class PostComposer:
             "\"title\": \"ИИ перестал быть инструктором — он стал бизнес-партнёром\","
             "\"summary\": \"Краткое резюме на 300–400 символов...\","
             "\"short_body\": \"Сжатый текст до 600 символов...\","
+            "\"average_body\": \"Средний текст...\","
             "\"body\": \"Развёрнутый текст 1000–1500 символов с выделениями **жирным**...\","
             "\"hashtags\": [\"инвестиции\", \"автоматизация\", \"управление\"]"
             "}\n\n"
@@ -123,7 +127,7 @@ class PostComposer:
 
     def _validate_payload(self, payload: dict[str, object]) -> None:
         """Проверяет структуру и ограничения результата."""
-        for field in ("translated_title", "title", "summary", "short_body", "body", "hashtags"):
+        for field in ("translated_title", "title", "summary", "short_body", "average_body", "body", "hashtags"):
             if field not in payload:
                 raise PostGenerationError(f"Отсутствует поле {field}")
         translated_title = payload["translated_title"]
@@ -134,6 +138,7 @@ class PostComposer:
         body = payload["body"]
         summary = payload["summary"]
         short_body = payload["short_body"].strip()
+        average_body = payload["average_body"]
         hashtags = payload["hashtags"]
         if not isinstance(body, str):
             raise PostGenerationError("Поле body должно быть строкой")
@@ -146,6 +151,11 @@ class PostComposer:
             raise PostGenerationError("Поле short_body должно быть непустой строкой")
         if len(short_body) > 600:
             raise PostGenerationError("Поле short_body превышает 600 символов")
+        if not isinstance(average_body, str) or not average_body.strip():
+            raise PostGenerationError("Поле average_body должно быть непустой строкой")
+        avg_compact = "".join(average_body.split())
+        if len(avg_compact) > 1000:
+            raise PostGenerationError("Поле average_body превышает 1000 символов без пробелов")
         if not isinstance(hashtags, Iterable):
             raise PostGenerationError("Поле hashtags должно быть массивом")
         hashtags_list = [tag for tag in hashtags if isinstance(tag, str) and tag.strip()]

@@ -22,6 +22,7 @@ SHEET_HEADERS = [
     "Link",
     "Summary",
     "Short Post",
+    "Average Post",
     "GPT Post Title",
     "GPT Post",
     "Image URL",
@@ -65,6 +66,8 @@ class GoogleSheetsWriter:
         telegraph_content = self._build_telegraph_content(record)
         short_body = record.post.short_body.strip()
         short_text = f"{short_body}\n\nЧитать подробнее >" if short_body else "Читать подробнее >"
+        average_body = record.post.average_body.strip()
+        average_text = f"{average_body}\n\nИсточник >" if average_body else "Источник >"
         hashtags_line = " ".join(f"#{tag}" for tag in record.post.hashtags)
         date_value = record.date if isinstance(record.date, str) else record.date.isoformat()
         return [
@@ -74,6 +77,7 @@ class GoogleSheetsWriter:
             record.link,
             record.summary,
             short_text,
+            average_text,
             record.post.title,
             telegraph_content,
             record.image.url,

@@ -50,6 +50,7 @@ class GeneratedPost:
     body: str
     summary: str
     short_body: str
+    average_body: str
     hashtags: tuple[str, ...]
 
     def formatted(self) -> str:
@@ -96,6 +97,7 @@ class PublicationRecord:
             self.link,
             self.summary,
             self.post.short_body,
+            self.post.average_body,
             self.post.title,
             self.post.formatted(),
             self.image.url,

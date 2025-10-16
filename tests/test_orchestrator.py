@@ -44,6 +44,7 @@ class DummyComposer:
             body="A" * 1500,
             summary="Краткое описание",
             short_body="Короткая версия",
+            average_body="Средний формат",
             hashtags=("AI", "Tech", "News"),
         )
 
@@ -120,6 +121,7 @@ def test_pipeline_runner_success(config: AppConfig) -> None:
     assert stats.published == 1
     assert stats.failed == 0
     assert len(sheets.records) == 1
+    assert sheets.records[0].status == "Revised"
 
 
 def test_pipeline_runner_handles_failures(config: AppConfig) -> None:
@@ -151,6 +153,34 @@ def test_pipeline_runner_handles_failures(config: AppConfig) -> None:
     assert stats.published == 0
     assert stats.failed == 0
     assert sheets.records == []
+
+
+def test_pipeline_sets_written_for_lower_scores(config: AppConfig) -> None:
+    news = NewsItem(
+        source="Test",
+        title="AI breakthrough",
+        link="https://example.com/1",
+        summary="Summary",
+        published=datetime.now(timezone.utc),
+        keywords=("AI",),
+        media_url=None,
+    )
+    collector = DummyCollector([news])
+    scorer = DummyScorer(8)
+    sheets = DummySheetsWriter()
+    runner = PipelineRunner(
+        config,
+        rss_collector=collector,  # type: ignore[arg-type]
+        scorer=scorer,  # type: ignore[arg-type]
+        composer=DummyComposer(),
+        image_selector=DummyImageSelector(),
+        sheets_writer=sheets,  # type: ignore[arg-type]
+    )
+
+    stats = runner.run()
+
+    assert stats.accepted == 1
+    assert sheets.records[0].status == "Written"
 
 
 def test_pipeline_skips_existing_links(config: AppConfig) -> None:
