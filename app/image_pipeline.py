@@ -123,15 +123,29 @@ class ImageSelector:
             logger.error("Ошибка генерации изображения: %s", exc)
             return None
 
-        data = response.data[0].get("b64_json")
-        if not data:
-            return None
-        try:
-            binary = base64.b64decode(data)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Не удалось декодировать изображение: %s", exc)
-            return None
-        return _ImageCandidate(data=binary, source="openai", prompt=prompt)
+        image_item = response.data[0]
+        b64_payload = getattr(image_item, "b64_json", None)
+        image_url = getattr(image_item, "url", None)
+
+        if b64_payload:
+            try:
+                binary = base64.b64decode(b64_payload)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Не удалось декодировать изображение: %s", exc)
+                return None
+            return _ImageCandidate(data=binary, source="openai", prompt=prompt)
+
+        if image_url:
+            try:
+                image_resp = self._session.get(image_url, timeout=self._freeimage.timeout)
+                image_resp.raise_for_status()
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Не удалось скачать изображение из OpenAI по URL: %s", exc)
+                return None
+            return _ImageCandidate(data=image_resp.content, source="openai", prompt=prompt)
+
+        logger.error("Ответ генерации изображения не содержит данных")
+        return None
 
     def _build_image_prompt(self, news: NewsItem, post: GeneratedPost) -> str:
         """Генерирует промт для изображения."""

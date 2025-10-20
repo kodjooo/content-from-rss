@@ -137,7 +137,8 @@ class DummyImageClient:
             size: str,
             quality: str | None = None,  # noqa: ARG002
         ) -> SimpleNamespace:
-            return SimpleNamespace(data=[{"b64_json": self._payload}])
+            item = SimpleNamespace(b64_json=self._payload, url=None)
+            return SimpleNamespace(data=[item])
 
     @property
     def images(self) -> "DummyImageClient._ImageWrapper":  # type: ignore[override]
