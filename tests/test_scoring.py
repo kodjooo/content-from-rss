@@ -50,7 +50,15 @@ def news_item() -> NewsItem:
 
 
 def test_evaluate_parses_score(tmp_cache: Path, news_item: NewsItem) -> None:
-    config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
+    config = OpenAIConfig(
+        api_key="test",
+        api_key_image="test-images",
+        model_rank="gpt",
+        model_post="gpt",
+        model_image="gpt-image",
+        image_quality="medium",
+        image_size="1024x1024",
+    )
     client = DummyClient(["score: 9 — стоит опубликовать"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 
@@ -62,7 +70,15 @@ def test_evaluate_parses_score(tmp_cache: Path, news_item: NewsItem) -> None:
 
 
 def test_evaluate_uses_cache(tmp_cache: Path, news_item: NewsItem) -> None:
-    config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
+    config = OpenAIConfig(
+        api_key="test",
+        api_key_image="test-images",
+        model_rank="gpt",
+        model_post="gpt",
+        model_image="gpt-image",
+        image_quality="medium",
+        image_size="1024x1024",
+    )
     client = DummyClient(["score: 8"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 
@@ -75,7 +91,15 @@ def test_evaluate_uses_cache(tmp_cache: Path, news_item: NewsItem) -> None:
 
 
 def test_evaluate_handles_invalid_response(tmp_cache: Path, news_item: NewsItem) -> None:
-    config = OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="gpt-image")
+    config = OpenAIConfig(
+        api_key="test",
+        api_key_image="test-images",
+        model_rank="gpt",
+        model_post="gpt",
+        model_image="gpt-image",
+        image_quality="medium",
+        image_size="1024x1024",
+    )
     client = DummyClient(["непонятный ответ"])
     scorer = RelevanceScorer(config, cache_dir=tmp_cache, client=client)
 

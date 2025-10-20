@@ -44,7 +44,15 @@ def config_bundle(tmp_path_factory) -> tuple[PexelsConfig, FreeImageHostConfig, 
     return (
         PexelsConfig(api_key="pexels", timeout=5, enabled=True),
         FreeImageHostConfig(api_key="freeimage", endpoint="https://freeimage.host/api/1/upload", timeout=5),
-        OpenAIConfig(api_key="openai", model_rank="gpt", model_post="gpt", model_image="img"),
+        OpenAIConfig(
+            api_key="openai",
+            api_key_image="openai-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         session,
     )
 
@@ -122,7 +130,13 @@ class DummyImageClient:
         def __init__(self, payload: str) -> None:
             self._payload = payload
 
-        def generate(self, model: str, prompt: str, size: str) -> SimpleNamespace:  # noqa: ARG002
+        def generate(
+            self,
+            model: str,
+            prompt: str,
+            size: str,
+            quality: str | None = None,  # noqa: ARG002
+        ) -> SimpleNamespace:
             return SimpleNamespace(data=[{"b64_json": self._payload}])
 
     @property

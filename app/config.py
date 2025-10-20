@@ -25,9 +25,12 @@ class OpenAIConfig:
     """Настройки взаимодействия с OpenAI."""
 
     api_key: str
+    api_key_image: str
     model_rank: str
     model_post: str
     model_image: str
+    image_quality: str
+    image_size: str
 
 
 @dataclass(frozen=True)
@@ -119,9 +122,12 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
 
     openai_cfg = OpenAIConfig(
         api_key=_require(os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY"),
+        api_key_image=os.getenv("OPENAI_IMAGE_API_KEY") or os.getenv("OPENAI_API_KEY") or "",
         model_rank=os.getenv("OPENAI_MODEL_RANK", "gpt-4o-mini"),
         model_post=os.getenv("OPENAI_MODEL_POST", "gpt-4o-mini"),
-        model_image=os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1"),
+        model_image=os.getenv("IMAGE_MODEL") or os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1"),
+        image_quality=os.getenv("IMAGE_QUALITY", "medium"),
+        image_size=os.getenv("IMAGE_SIZE", "1024x1024"),
     )
 
     skip_pexels = _as_bool(os.getenv("SKIP_PEXELS_SEARCH"), default=False)

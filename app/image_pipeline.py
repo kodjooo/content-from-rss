@@ -116,7 +116,8 @@ class ImageSelector:
             response = client.images.generate(
                 model=self._openai_cfg.model_image,
                 prompt=prompt,
-                size="1024x1024",
+                size=self._openai_cfg.image_size,
+                quality=self._openai_cfg.image_quality,
             )
         except Exception as exc:  # noqa: BLE001
             logger.error("Ошибка генерации изображения: %s", exc)
@@ -173,7 +174,7 @@ class ImageSelector:
     def _ensure_client(self) -> OpenAI:
         """Ленивая инициализация клиента OpenAI."""
         if self._client is None:
-            self._client = OpenAI(api_key=self._openai_cfg.api_key)
+            self._client = OpenAI(api_key=self._openai_cfg.api_key_image or self._openai_cfg.api_key)
         return self._client
 
 

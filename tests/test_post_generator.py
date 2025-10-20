@@ -58,7 +58,15 @@ def make_payload(body_length: int, hashtags: list[str]) -> str:
 def test_generate_returns_valid_post(news_item: NewsItem) -> None:
     payload = make_payload(1500, ["AI", "Automation", "Innovation"])
     composer = PostComposer(
-        OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         client=DummyClient(payload),
     )
 
@@ -75,7 +83,15 @@ def test_generate_returns_valid_post(news_item: NewsItem) -> None:
 def test_generate_raises_on_short_text(news_item: NewsItem) -> None:
     payload = make_payload(700, ["AI", "Automation", "Innovation"])
     composer = PostComposer(
-        OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         client=DummyClient(payload),
     )
 
@@ -85,7 +101,15 @@ def test_generate_raises_on_short_text(news_item: NewsItem) -> None:
 
 def test_generate_raises_on_invalid_json(news_item: NewsItem) -> None:
     composer = PostComposer(
-        OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         client=DummyClient("invalid json"),
     )
 
@@ -104,7 +128,15 @@ def test_generate_raises_on_average_overflow(news_item: NewsItem) -> None:
         "hashtags": ["AI", "Automation", "Innovation"],
     }
     composer = PostComposer(
-        OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         client=DummyClient(json.dumps(data)),
     )
 
