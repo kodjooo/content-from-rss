@@ -15,6 +15,7 @@ from app.config import (
     SchedulerConfig,
     SheetsConfig,
 )
+from app.image_pipeline import ImageGenerationError
 from app.models import GeneratedPost, ImageAsset, NewsItem, RankedNews
 from app.orchestrator import PipelineRunner
 
@@ -54,6 +55,10 @@ class DummyImageSelector:
         return ImageAsset(url="https://images.example.com/test.jpg", source="rss")
 
 
+class FailingImageSelector:
+    def select(self, news: NewsItem, post: GeneratedPost) -> ImageAsset:  # noqa: ARG002
+        raise ImageGenerationError("fail")
+
 class DummySheetsWriter:
     def __init__(self, existing_links: set[str] | None = None) -> None:
         self.records = []
@@ -78,7 +83,15 @@ class DummySheetsWriter:
 def config(tmp_path: Path) -> AppConfig:
     return AppConfig(
         rss=RSSConfig(sources=(), keywords=("AI",), similarity_threshold=0.8, max_items=10),
-        openai=OpenAIConfig(api_key="test", model_rank="gpt", model_post="gpt", model_image="img"),
+        openai=OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
         pexels=PexelsConfig(api_key="pexels", timeout=5, enabled=True),
         freeimagehost=FreeImageHostConfig(api_key="freeimage", endpoint="https://freeimage.host/api", timeout=5),
         sheets=SheetsConfig(
@@ -122,6 +135,41 @@ def test_pipeline_runner_success(config: AppConfig) -> None:
     assert stats.failed == 0
     assert len(sheets.records) == 1
     assert sheets.records[0].status == "Revised"
+
+
+def test_pipeline_adds_record_without_image(config: AppConfig) -> None:
+    news = NewsItem(
+        source="Test",
+        title="AI fallback",
+        link="https://example.com/2",
+        summary="Summary",
+        published=datetime.now(timezone.utc),
+        keywords=("AI",),
+        media_url=None,
+    )
+    collector = DummyCollector([news])
+    scorer = DummyScorer(9)
+    sheets = DummySheetsWriter()
+    runner = PipelineRunner(
+        config,
+        rss_collector=collector,  # type: ignore[arg-type]
+        scorer=scorer,  # type: ignore[arg-type]
+        composer=DummyComposer(),
+        image_selector=FailingImageSelector(),
+        sheets_writer=sheets,  # type: ignore[arg-type]
+    )
+
+    stats = runner.run()
+
+    assert stats.processed == 1
+    assert stats.accepted == 1
+    assert stats.published == 1
+    assert stats.failed == 0
+    assert len(sheets.records) == 1
+    record = sheets.records[0]
+    assert record.image.url == ""
+    assert record.image.source == ""
+    assert record.image_source == ""
 
 
 def test_pipeline_runner_handles_failures(config: AppConfig) -> None:

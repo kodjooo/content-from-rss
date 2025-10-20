@@ -10,7 +10,7 @@ from typing import Iterable, Sequence
 import pytz
 
 from .config import AppConfig, load_settings
-from .image_pipeline import ImageSelector
+from .image_pipeline import ImageGenerationError, ImageSelector
 from .logging_utils import setup_logging
 from .models import GeneratedPost, ImageAsset, NewsItem, PublicationRecord
 from .post_generator import PostComposer, PostGenerationError
@@ -91,7 +91,15 @@ class PipelineRunner:
         for ranked_item in accepted:
             try:
                 post = self._composer.generate(ranked_item.news)
-                image = self._image_selector.select(ranked_item.news, post)
+                try:
+                    image = self._image_selector.select(ranked_item.news, post)
+                except ImageGenerationError as exc:
+                    logger.warning(
+                        "Не удалось получить изображение для %s: %s. Запись будет добавлена без изображения.",
+                        ranked_item.news.link,
+                        exc,
+                    )
+                    image = self._placeholder_image()
                 record = self._build_record(ranked_item.score, post, image, ranked_item.news)
                 records.append(record)
             except PostGenerationError:
@@ -162,12 +170,18 @@ class PipelineRunner:
 
     def _image_source_label(self, source: str) -> str:
         """Читабельное название источника изображения."""
+        if not source:
+            return ""
         mapping = {
             "rss": "RSS",
             "pexels": "Библиотека",
             "openai": "Генерация",
         }
         return mapping.get(source.lower(), source)
+
+    def _placeholder_image(self) -> ImageAsset:
+        """Возвращает заглушку изображения при ошибке генерации."""
+        return ImageAsset(url="", source="", prompt=None)
 
     def _select_top_ranked(self, ranked: Iterable[RankedNews]) -> list[RankedNews]:
         """Выбирает минимум три новости, постепенно снижая порог с 10 до 8."""
