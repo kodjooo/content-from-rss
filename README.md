@@ -19,7 +19,7 @@
 
 ## Окружение и конфигурация
 - Основной способ развертывания — Docker Compose (см. раздел ниже).
-- Перед сборкой скопируйте `.env.example` в `.env` и заполните обязательные переменные: `OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `RUN_PIPELINE_ON_START` (можно отключить стартовый прогон, указав `false`). Для генерации изображений можно задать отдельный ключ `OPENAI_IMAGE_API_KEY`, а также параметры `IMAGE_MODEL`, `IMAGE_QUALITY`, `IMAGE_SIZE`; опциональная переменная `SKIP_PEXELS_SEARCH=true` пропускает поиск изображений в Pexels.
+- Перед сборкой скопируйте `.env.example` в `.env` и заполните обязательные переменные: `OPENAI_API_KEY`, `PEXELS_API_KEY`, `FREEIMAGEHOST_API_KEY`, `SHEET_ID`, `SHEET_WORKSHEET`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `RUN_PIPELINE_ON_START` (можно отключить стартовый прогон, указав `false`). Для генерации изображений можно задать отдельный ключ `OPENAI_IMAGE_API_KEY`, а также параметры `OPENAI_IMAGE_MODEL`, `IMAGE_QUALITY`, `IMAGE_SIZE`; опциональная переменная `SKIP_PEXELS_SEARCH=true` пропускает поиск изображений в Pexels.
 - Файл сервисного аккаунта Google поместите в `secrets/` по пути, указанному в переменной `GOOGLE_SERVICE_ACCOUNT_JSON`.
 - Для удобного заполнения `.env` можно воспользоваться скриптом:
   ```bash

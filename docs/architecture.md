@@ -38,7 +38,7 @@
 - `OPENAI_API_KEY` — ключ OpenAI.
 - `OPENAI_MODEL_RANK` — модель для оценки релевантности (по умолчанию `gpt-4o-mini`).
 - `OPENAI_MODEL_POST` — модель для генерации поста (по умолчанию `gpt-4o-mini`).
-- `OPENAI_IMAGE_MODEL` / `IMAGE_MODEL` — модель для генерации изображений (по умолчанию `gpt-image-1`).
+- `OPENAI_IMAGE_MODEL` — модель для генерации изображений (по умолчанию `gpt-image-1`).
 - `IMAGE_QUALITY` — качество изображения (для `gpt-image-1`: low/medium/high/auto; для `dall-e-3`: standard/hd).
 - `IMAGE_SIZE` — размер изображения (для `gpt-image-1`: 1024x1024/1024x1536/1536x1024/auto; для `dall-e-3`: 1024x1024).
 - `SCHEDULER_TIMEZONE` — таймзона планировщика, по умолчанию `Europe/Moscow`.
