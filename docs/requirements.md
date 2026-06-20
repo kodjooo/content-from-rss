@@ -52,7 +52,7 @@ AI, Artificial Intelligence, Automation, Neural, ChatGPT, LLM, Anthropic, OpenAI
 ========================================================
 | Date | Source | Title | Link | Summary | Short Post | Long Post | Image URL | Image Source | Score | Status | Notes |
 
-Status: Written (по умолчанию для score ≤ 8) / Revised (проставляется автоматически для score 9–10) / Published (после ручной публикации)
+Status: Written (по умолчанию для score < 8) / Revised (проставляется автоматически для score 8–10) / Published (после ручной публикации)
 
 ========================================================
 5. РАСПИСАНИЕ
@@ -92,7 +92,7 @@ IMAGE_SIZE=
 3. Подбор изображения (RSS → Pexels → GPT Image).
 4. Загрузка на FreeImageHost.
 5. Сохранение строки в Google Sheets (если изображение недоступно, соответствующие ячейки остаются пустыми).
-6. Присвоение статуса (`Revised` для score 9–10, иначе `Written`).
+6. Присвоение статуса (`Revised` для score 8–10, иначе `Written`).
 
 ========================================================
 8. РУЧНАЯ ЧАСТЬ

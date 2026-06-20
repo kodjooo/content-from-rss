@@ -203,7 +203,7 @@ def test_pipeline_runner_handles_failures(config: AppConfig) -> None:
     assert sheets.records == []
 
 
-def test_pipeline_sets_written_for_lower_scores(config: AppConfig) -> None:
+def test_pipeline_sets_revised_for_score_8(config: AppConfig) -> None:
     news = NewsItem(
         source="Test",
         title="AI breakthrough",
@@ -228,7 +228,7 @@ def test_pipeline_sets_written_for_lower_scores(config: AppConfig) -> None:
     stats = runner.run()
 
     assert stats.accepted == 1
-    assert sheets.records[0].status == "Written"
+    assert sheets.records[0].status == "Revised"
 
 
 def test_pipeline_skips_existing_links(config: AppConfig) -> None:

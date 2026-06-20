@@ -129,7 +129,7 @@ class PipelineRunner:
         """Формирует объект для сохранения."""
         now = datetime.now(self._timezone)
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
-        status = "Revised" if score >= 9 else "Written"
+        status = "Revised" if score >= 8 else "Written"
         return PublicationRecord(
             date=date_str,
             source=news.source,
