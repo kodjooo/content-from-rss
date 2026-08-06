@@ -110,6 +110,9 @@ class ImageSelector:
 
     def _generate_image(self, news: NewsItem, post: GeneratedPost) -> _ImageCandidate | None:
         """Генерация изображения через OpenAI."""
+        if not self._openai_cfg.image_generation_enabled:
+            logger.info("Генерация изображения отключена (ENABLE_IMAGE_GENERATION)")
+            return None
         prompt = self._build_image_prompt(news, post)
         client = self._ensure_client()
         try:

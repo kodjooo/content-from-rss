@@ -184,7 +184,12 @@ class PipelineRunner:
         return ImageAsset(url="", source="", prompt=None)
 
     def _select_top_ranked(self, ranked: Iterable[RankedNews]) -> list[RankedNews]:
-        """Выбирает минимум три новости, постепенно снижая порог с 10 до 8."""
+        """Выбирает кандидатов, постепенно снижая порог с 10 до 8.
+
+        Лимит сознательно низкий: два и более поста в день режут охват друг друга,
+        поэтому таблица — короткий список кандидатов, из которого публикуется один пост.
+        """
+        limit = max(1, self._config.pipeline_max_posts)
         ranked_by_score: dict[int, list[RankedNews]] = {10: [], 9: [], 8: []}
         for item in ranked:
             if item.score >= 10:
@@ -197,11 +202,11 @@ class PipelineRunner:
         result: list[RankedNews] = []
         for score in (10, 9, 8):
             pool = ranked_by_score[score]
-            while pool and len(result) < 5:
+            while pool and len(result) < limit:
                 result.append(pool.pop(0))
-            if len(result) >= 3:
+            if len(result) >= limit:
                 break
-        return result[:5]
+        return result[:limit]
 
 
 def main() -> PipelineStats:

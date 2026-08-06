@@ -31,6 +31,7 @@ class OpenAIConfig:
     model_image: str
     image_quality: str
     image_size: str
+    image_generation_enabled: bool = False
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,7 @@ class AppConfig:
     scheduler: SchedulerConfig
     cache_dir: Path
     log_level: str
+    pipeline_max_posts: int = 2
 
 
 def _parse_list(env_value: str | None) -> tuple[str, ...]:
@@ -120,6 +122,11 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
         max_items=max_items,
     )
 
+    # Декоративные картинки к новостям не дают прироста охвата (проверено на архиве
+    # постов), поэтому по умолчанию генерация и поиск иллюстраций отключены:
+    # картинка берётся только из самой новости, если она там есть.
+    images_enabled = _as_bool(os.getenv("ENABLE_IMAGE_GENERATION"), default=False)
+
     openai_cfg = OpenAIConfig(
         api_key=_require(os.getenv("OPENAI_API_KEY"), "OPENAI_API_KEY"),
         api_key_image=os.getenv("OPENAI_IMAGE_API_KEY") or os.getenv("OPENAI_API_KEY") or "",
@@ -128,9 +135,10 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
         model_image=os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1"),
         image_quality=os.getenv("IMAGE_QUALITY", "medium"),
         image_size=os.getenv("IMAGE_SIZE", "1024x1024"),
+        image_generation_enabled=images_enabled,
     )
 
-    skip_pexels = _as_bool(os.getenv("SKIP_PEXELS_SEARCH"), default=False)
+    skip_pexels = _as_bool(os.getenv("SKIP_PEXELS_SEARCH"), default=False) or not images_enabled
     pexels_key = os.getenv("PEXELS_API_KEY")
     if skip_pexels:
         pexels_key = pexels_key or ""
@@ -181,6 +189,7 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
         scheduler=scheduler,
         cache_dir=cache_dir,
         log_level=log_level,
+        pipeline_max_posts=int(os.getenv("PIPELINE_MAX_POSTS", "2")),
     )
 
 

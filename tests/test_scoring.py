@@ -106,3 +106,28 @@ def test_evaluate_handles_invalid_response(tmp_cache: Path, news_item: NewsItem)
     ranked = scorer.evaluate(news_item)
 
     assert ranked is None
+
+
+def test_score_prompt_contains_priorities(tmp_cache: Path, news_item: NewsItem) -> None:
+    """В промте оценки есть приоритеты тем и фильтр на практическую применимость."""
+    scorer = RelevanceScorer(
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
+        tmp_cache,
+        client=DummyClient(["score: 9 — ok"]),
+    )
+
+    prompt = scorer._build_prompt(news_item)
+
+    assert "понедельник утром" in prompt
+    assert "рынок труда" in prompt
+    assert "инвестиционные раунды" in prompt
+    assert "антимонопольные расследования" in prompt
+    assert "вайб-кодингом" in prompt

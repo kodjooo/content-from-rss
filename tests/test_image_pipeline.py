@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -52,6 +53,7 @@ def config_bundle(tmp_path_factory) -> tuple[PexelsConfig, FreeImageHostConfig, 
             model_image="img",
             image_quality="medium",
             image_size="1024x1024",
+            image_generation_enabled=True,
         ),
         session,
     )
@@ -229,3 +231,33 @@ def test_select_raises_when_upload_fails(news_item: NewsItem, generated_post: Ge
 
     with pytest.raises(ImageGenerationError):
         selector.select(news_item, generated_post)
+
+
+@responses.activate
+def test_select_raises_when_image_generation_disabled(
+    generated_post: GeneratedPost, config_bundle
+) -> None:
+    """При ENABLE_IMAGE_GENERATION=false картинка не генерируется и не ищется."""
+    _, freeimage, openai_config, session = config_bundle
+    pexels_disabled = PexelsConfig(api_key="", timeout=5, enabled=False)
+    openai_disabled = replace(openai_config, image_generation_enabled=False)
+    news = NewsItem(
+        source="https://example.com/feed",
+        title="AI robotics",
+        link="https://example.com/5",
+        summary="Robotics summary",
+        published=None,
+        keywords=("AI",),
+        media_url=None,
+    )
+
+    selector = ImageSelector(
+        pexels_disabled,
+        freeimage,
+        openai_disabled,
+        session=session,
+        client=DummyImageClient(base64.b64encode(b"unused").decode()),
+    )
+
+    with pytest.raises(ImageGenerationError):
+        selector.select(news, generated_post)

@@ -142,3 +142,64 @@ def test_generate_raises_on_average_overflow(news_item: NewsItem) -> None:
 
     with pytest.raises(PostGenerationError):
         composer.generate(news_item)
+
+
+def make_composer(payload: str) -> PostComposer:
+    return PostComposer(
+        OpenAIConfig(
+            api_key="test",
+            api_key_image="test-images",
+            model_rank="gpt",
+            model_post="gpt",
+            model_image="img",
+            image_quality="medium",
+            image_size="1024x1024",
+        ),
+        client=DummyClient(payload),
+    )
+
+
+def test_generate_rejects_banned_phrase(news_item: NewsItem) -> None:
+    """Маркеры нейрослопа не должны проходить в готовый пост."""
+    data = json.loads(make_payload(1300, ["ии", "автоматизация", "промпты"]))
+    data["body"] = "Б" * 1200 + " Владельцам бизнеса стоит следить за этим."
+    composer = make_composer(json.dumps(data))
+
+    with pytest.raises(PostGenerationError):
+        composer.generate(news_item)
+
+
+def test_generate_rejects_question_in_title(news_item: NewsItem) -> None:
+    data = json.loads(make_payload(1300, ["ии", "автоматизация", "промпты"]))
+    data["title"] = "Нужен ли тут программист?"
+    composer = make_composer(json.dumps(data))
+
+    with pytest.raises(PostGenerationError):
+        composer.generate(news_item)
+
+
+def test_generate_rejects_multiple_questions_in_body(news_item: NewsItem) -> None:
+    data = json.loads(make_payload(1300, ["ии", "автоматизация", "промпты"]))
+    data["body"] = "В" * 1200 + " А у вас как? С чем столкнулись? Что выбрали?"
+    composer = make_composer(json.dumps(data))
+
+    with pytest.raises(PostGenerationError):
+        composer.generate(news_item)
+
+
+def test_prompt_variants_differ_between_news() -> None:
+    """Комбинация приёмов подачи зависит от новости — посты не должны быть однотипными."""
+    composer = make_composer(make_payload(1300, ["ии", "автоматизация", "промпты"]))
+    variants = set()
+    for index in range(12):
+        item = NewsItem(
+            source="https://example.com/feed",
+            title=f"News {index}",
+            link=f"https://example.com/news/{index}",
+            summary="Summary",
+            published=None,
+            keywords=("AI",),
+            media_url=None,
+        )
+        variants.add(composer._variants(item))
+    assert len(variants) > 1

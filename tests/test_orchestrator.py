@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -291,3 +291,35 @@ def test_pipeline_clears_sheet_on_reset(config: AppConfig) -> None:
     assert sheets.cleared is True
     assert len(sheets.records) == 1
     assert sheets.records[0].link == news.link
+
+
+def test_pipeline_limits_number_of_posts(config: AppConfig) -> None:
+    """За прогон отбирается не больше pipeline_max_posts новостей."""
+    limited = replace(config, pipeline_max_posts=2)
+    news = [
+        NewsItem(
+            source="Test",
+            title=f"AI news {index}",
+            link=f"https://example.com/limit/{index}",
+            summary="Summary",
+            published=datetime.now(timezone.utc),
+            keywords=("AI",),
+            media_url=None,
+        )
+        for index in range(6)
+    ]
+    sheets = DummySheetsWriter()
+    runner = PipelineRunner(
+        limited,
+        rss_collector=DummyCollector(news),  # type: ignore[arg-type]
+        scorer=DummyScorer(10),  # type: ignore[arg-type]
+        composer=DummyComposer(),
+        image_selector=DummyImageSelector(),
+        sheets_writer=sheets,  # type: ignore[arg-type]
+    )
+
+    stats = runner.run()
+
+    assert stats.processed == 6
+    assert stats.accepted == 2
+    assert len(sheets.records) == 2
