@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from app.config import AppConfig, FreeImageHostConfig, OpenAIConfig, PexelsConfig, RSSConfig, SchedulerConfig, SheetsConfig
+import pytest
+
+from app.config import _parse_run_times, AppConfig, FreeImageHostConfig, OpenAIConfig, PexelsConfig, RSSConfig, SchedulerConfig, SheetsConfig
 from app.scheduler import PipelineScheduler
 
 
@@ -34,7 +36,7 @@ def make_config(tmp_path, run_once_on_start: bool = True) -> AppConfig:
             service_account_json=tmp_path / "credentials.json",
             worksheet="Sheet1",
         ),
-        scheduler=SchedulerConfig(timezone="Europe/Moscow", run_hours=(), run_once_on_start=run_once_on_start),
+        scheduler=SchedulerConfig(timezone="Europe/Moscow", run_times=(), run_once_on_start=run_once_on_start),
         cache_dir=tmp_path,
         log_level="INFO",
     )
@@ -70,3 +72,40 @@ def test_scheduler_start_respects_flag(tmp_path) -> None:
     scheduler.stop()
 
     assert runner.calls == 0
+
+
+def test_parse_run_times_defaults_to_single_evening_run() -> None:
+    assert _parse_run_times(None) == ((17, 50),)
+    assert _parse_run_times("   ") == ((17, 50),)
+
+
+def test_parse_run_times_supports_minutes_and_lists() -> None:
+    assert _parse_run_times("17:50") == ((17, 50),)
+    assert _parse_run_times("19:30, 7") == ((7, 0), (19, 30))
+
+
+def test_parse_run_times_rejects_garbage() -> None:
+    with pytest.raises(ValueError):
+        _parse_run_times("25:00")
+    with pytest.raises(ValueError):
+        _parse_run_times("вечером")
+
+
+def test_lookback_window_matches_schedule() -> None:
+    assert SchedulerConfig(timezone="Europe/Moscow", run_times=((17, 50),)).lookback_hours == 25
+    assert SchedulerConfig(timezone="Europe/Moscow", run_times=((7, 0), (19, 0))).lookback_hours == 13
+
+
+def test_scheduler_registers_jobs_with_minutes(tmp_path) -> None:
+    config = make_config(tmp_path, run_once_on_start=False)
+    config = replace(config, scheduler=replace(config.scheduler, run_times=((17, 50),)))
+    scheduler = PipelineScheduler(config, runner_factory=lambda: DummyRunner())
+
+    scheduler.start(block=False)
+    jobs = scheduler._scheduler.get_jobs()
+    scheduler.stop()
+
+    assert len(jobs) == 1
+    fields = {field.name: str(field) for field in jobs[0].trigger.fields}
+    assert fields["hour"] == "17"
+    assert fields["minute"] == "50"

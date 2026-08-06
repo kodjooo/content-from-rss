@@ -29,9 +29,14 @@ class PipelineScheduler:
 
     def schedule_jobs(self) -> None:
         """Добавляет задачи в планировщик."""
-        for hour in self._config.scheduler.run_hours:
-            self._scheduler.add_job(self._run_job, "cron", hour=hour, minute=0)
-            logger.info("Запланирован запуск пайплайна на %02d:00", hour)
+        for hour, minute in self._config.scheduler.run_times:
+            self._scheduler.add_job(self._run_job, "cron", hour=hour, minute=minute)
+            logger.info(
+                "Запланирован запуск пайплайна на %02d:%02d (%s)",
+                hour,
+                minute,
+                self._config.scheduler.timezone,
+            )
 
     def start(self, block: bool = True) -> None:
         """Запускает планировщик."""

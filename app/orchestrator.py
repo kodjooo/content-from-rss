@@ -71,12 +71,13 @@ class PipelineRunner:
             logger.exception("Не удалось получить список ссылок из Google Sheets")
             existing_links = set()
 
+        lookback_hours = self._config.scheduler.lookback_hours
         news_items = [item for item in self._rss.collect() if item.link not in existing_links]
-        recent_items = self._filter_recent(news_items)
+        recent_items = self._filter_recent(news_items, lookback_hours)
         stats.processed = len(recent_items)
 
         if not recent_items:
-            logger.info("Нет новостей за последние 12 часов")
+            logger.info("Нет новостей за последние %d часов", lookback_hours)
             return stats
 
         ranked = self._scorer.evaluate_many(recent_items)
@@ -145,16 +146,20 @@ class PipelineRunner:
 
     def _should_reset_sheet(self) -> bool:
         """Определяет, нужно ли очистить таблицу перед запуском."""
-        run_hours = getattr(self._config.scheduler, "run_hours", (7, 19))
-        if not run_hours:
+        run_times = getattr(self._config.scheduler, "run_times", ((17, 50),))
+        if not run_times:
             return False
-        earliest_hour = min(run_hours)
+        earliest_hour = min(hour for hour, _ in run_times)
         now_local = datetime.now(self._timezone)
         return now_local.hour == earliest_hour
 
-    def _filter_recent(self, items: Iterable[NewsItem]) -> list[NewsItem]:
-        """Фильтрует новости по давности публикации (12 часов)."""
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+    def _filter_recent(self, items: Iterable[NewsItem], lookback_hours: int = 25) -> list[NewsItem]:
+        """Фильтрует новости по давности публикации.
+
+        Глубина окна берётся из расписания: интервал между запусками плюс час запаса,
+        чтобы новости не терялись на стыке прогонов.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
         recent: list[NewsItem] = []
         for item in items:
             published = item.published

@@ -66,8 +66,18 @@ class SchedulerConfig:
     """Настройки планировщика."""
 
     timezone: str
-    run_hours: tuple[int, ...] = field(default=(7, 19))
+    run_times: tuple[tuple[int, int], ...] = field(default=((17, 50),))
     run_once_on_start: bool = True
+
+    @property
+    def lookback_hours(self) -> int:
+        """Глубина окна отбора новостей — интервал между запусками плюс час запаса."""
+        if len(self.run_times) < 2:
+            return 25
+        minutes = sorted(hour * 60 + minute for hour, minute in self.run_times)
+        gaps = [second - first for first, second in zip(minutes, minutes[1:])]
+        gaps.append(minutes[0] + 24 * 60 - minutes[-1])
+        return max(2, round(max(gaps) / 60) + 1)
 
 
 @dataclass(frozen=True)
@@ -97,6 +107,29 @@ def _require(value: str | None, name: str) -> str:
     if not value:
         raise ValueError(f"Не указана обязательная переменная окружения: {name}")
     return value
+
+
+def _parse_run_times(env_value: str | None) -> tuple[tuple[int, int], ...]:
+    """Разбирает расписание вида '17:50' или '7:00,19:30' в пары (час, минута)."""
+    if not env_value or not env_value.strip():
+        return ((17, 50),)
+    times: list[tuple[int, int]] = []
+    for chunk in env_value.split(","):
+        raw = chunk.strip()
+        if not raw:
+            continue
+        hour_part, _, minute_part = raw.partition(":")
+        try:
+            hour = int(hour_part)
+            minute = int(minute_part) if minute_part else 0
+        except ValueError as err:
+            raise ValueError(f"Некорректное время запуска в SCHEDULER_RUN_TIMES: {raw}") from err
+        if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+            raise ValueError(f"Время запуска вне диапазона в SCHEDULER_RUN_TIMES: {raw}")
+        times.append((hour, minute))
+    if not times:
+        return ((17, 50),)
+    return tuple(sorted(set(times)))
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -173,7 +206,7 @@ def load_settings(dotenv_path: str | None = None) -> AppConfig:
 
     scheduler = SchedulerConfig(
         timezone=os.getenv("SCHEDULER_TIMEZONE", "Europe/Moscow"),
-        run_hours=(7, 19),
+        run_times=_parse_run_times(os.getenv("SCHEDULER_RUN_TIMES")),
         run_once_on_start=_as_bool(os.getenv("RUN_PIPELINE_ON_START"), default=True),
     )
 
